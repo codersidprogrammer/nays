@@ -73,7 +73,7 @@ class Router:
             routeInstance.routeParams = data
         
         # Call onInit on new route if it implements it
-        if issubclass(type(routeInstance), OnInit) and callable(routeInstance.onInit):
+        if issubclass(type(routeInstance), OnInit) or callable(routeInstance.onInit):
             routeInstance.onInit()
         
         # Display the route
