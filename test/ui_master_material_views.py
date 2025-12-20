@@ -3,12 +3,21 @@ View wrappers for the generated UI files.
 These views wrap the auto-generated UI code and add lifecycle support.
 """
 
+from abc import ABC, abstractmethod
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMessageBox, QWidget, QLineEdit, QTreeWidget, QTableWidget
 from PySide6.QtCore import Qt
 
 from ui.base_dialog import BaseDialogView
 from ui.base_window import BaseWindowView
 from core.router import Router
+
+
+# ==================== Logger Service Definition ====================
+class LoggerService(ABC):
+    """Logger service interface"""
+    @abstractmethod
+    def log(self, message: str):
+        pass
 
 # Note: Generated UI classes are no longer imported since we create UI dynamically
 # from ui_dialog_line_master_material import Ui_MasterMaterial
@@ -21,10 +30,11 @@ class MasterMaterialView(BaseDialogView):
     Wraps Ui_MasterMaterial and adds logic/lifecycle support.
     """
     
-    def __init__(self, routeData: dict = {}, router: 'Router' = None):
+    def __init__(self, routeData: dict = {}, router: 'Router' = None, logger: LoggerService = None):
         BaseDialogView.__init__(self, routeData=routeData)
         self.route_data = routeData
         self.router = router  # Injected router for navigation
+        self.logger = logger  # Injected logger service from root module
         self.init_called = False
         self.destroy_called = False
         self.lifecycle_events = []
@@ -120,6 +130,8 @@ class MasterMaterialView(BaseDialogView):
         """Lifecycle hook: called when route is navigated to"""
         self.init_called = True
         self.lifecycle_events.append("init")
+        if self.logger:
+            self.logger.log(f"MasterMaterialView initialized with material: {self.route_data.get('material_name', 'Unknown')}")
         if self.route_data:
             title = self.route_data.get('material_name', 'Master Material')
             self.setWindowTitle(f"Master Material - {title}")
@@ -128,6 +140,8 @@ class MasterMaterialView(BaseDialogView):
         """Lifecycle hook: called when route is navigated away"""
         self.destroy_called = True
         self.lifecycle_events.append("destroy")
+        if self.logger:
+            self.logger.log(f"MasterMaterialView destroyed")
 
 
 class MasterMaterialEditView(BaseDialogView):
@@ -136,10 +150,11 @@ class MasterMaterialEditView(BaseDialogView):
     Wraps Ui_MasterMaterialEdit and adds logic/lifecycle support.
     """
     
-    def __init__(self, routeData: dict = {}, router: 'Router' = None):
+    def __init__(self, routeData: dict = {}, router: 'Router' = None, logger: LoggerService = None):
         BaseDialogView.__init__(self, routeData=routeData)
         self.route_data = routeData
         self.router = router  # Injected router for navigation
+        self.logger = logger  # Injected logger service from root module
         self.init_called = False
         self.destroy_called = False
         self.lifecycle_events = []
@@ -250,6 +265,8 @@ class MasterMaterialEditView(BaseDialogView):
         """Lifecycle hook: called when route is navigated to"""
         self.init_called = True
         self.lifecycle_events.append("init")
+        if self.logger:
+            self.logger.log(f"MasterMaterialEditView initialized with material: {self.route_data.get('material_name', 'Unknown')}")
         if self.route_data:
             title = self.route_data.get('material_name', 'Master Material')
             self.setWindowTitle(f"Master Material Edit - {title}")
@@ -258,6 +275,8 @@ class MasterMaterialEditView(BaseDialogView):
         """Lifecycle hook: called when route is navigated away"""
         self.destroy_called = True
         self.lifecycle_events.append("destroy")
+        if self.logger:
+            self.logger.log(f"MasterMaterialEditView destroyed")
 
 
 class EntryWindowView(BaseWindowView):
@@ -266,10 +285,11 @@ class EntryWindowView(BaseWindowView):
     Provides navigation to different material management dialogs.
     """
     
-    def __init__(self, routeData: dict = {}, router: 'Router' = None):
+    def __init__(self, routeData: dict = {}, router: 'Router' = None, logger: LoggerService = None):
         BaseWindowView.__init__(self, routeData=routeData)
         self.route_data = routeData
         self.router = router  # Injected router for navigation
+        self.logger = logger  # Injected logger service from root module
         self.init_called = False
         self.destroy_called = False
         self.lifecycle_events = []
@@ -330,9 +350,13 @@ class EntryWindowView(BaseWindowView):
         """Lifecycle hook: called when route is navigated to"""
         self.init_called = True
         self.lifecycle_events.append("init")
+        if self.logger:
+            self.logger.log("EntryWindowView initialized - Ready to navigate to material management views")
         self.status_label.setText("Status: Initialized")
     
     def onDestroy(self):
         """Lifecycle hook: called when route is navigated away"""
         self.destroy_called = True
         self.lifecycle_events.append("destroy")
+        if self.logger:
+            self.logger.log("EntryWindowView destroyed")

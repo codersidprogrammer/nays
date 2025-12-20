@@ -26,25 +26,25 @@ from core.logger import setupLogger
 from test.ui_master_material_views import (
     MasterMaterialView,
     MasterMaterialEditView,
-    EntryWindowView
+    EntryWindowView,
+    LoggerService
 )
 
 # ==================== Logger Service ====================
 from abc import ABC, abstractmethod
 
 
-class LoggerService(ABC):
-    @abstractmethod
-    def log(self, message: str):
-        pass
-
-
 class LoggerServiceImpl(LoggerService):
+    """Logger implementation"""
     def __init__(self):
-        self.logger = setupLogger(self)
-
+        self.logs = []
+        self.log("LoggerService initialized")
+    
     def log(self, message: str):
-        self.logger.info(message)
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+        self.logs.append(message)
+        print(f"[{timestamp}] {message}")
 
 
 # ==================== Routes ====================

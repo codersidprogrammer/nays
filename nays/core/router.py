@@ -66,6 +66,20 @@ class Router:
         if 'router' in sig.parameters:
             constructor_kwargs['router'] = self
         
+        # Check for other injectable parameters (logger, services, etc.)
+        # These will be resolved by the injector automatically
+        for param_name, param in sig.parameters.items():
+            if param_name not in ('self', 'routeData', 'router'):
+                # Try to get this from the injector
+                if param.annotation != inspect.Parameter.empty:
+                    try:
+                        # Attempt to resolve this dependency from the injector
+                        resolved = self.__injector.get(param.annotation)
+                        constructor_kwargs[param_name] = resolved
+                    except Exception:
+                        # If not found, let the injector handle it
+                        pass
+        
         routeInstance = self.__injector.create_object(route.component, constructor_kwargs)
         
         # Set route data if needed
@@ -73,7 +87,7 @@ class Router:
             routeInstance.routeParams = data
         
         # Call onInit on new route if it implements it
-        if issubclass(type(routeInstance), OnInit) or callable(routeInstance.onInit):
+        if (issubclass(type(routeInstance), OnInit) or hasattr(routeInstance, 'onInit')) and callable(getattr(routeInstance, 'onInit', None)):
             routeInstance.onInit()
         
         # Display the route
@@ -95,3 +109,28 @@ class Router:
     def getCurrentRoute(self) -> Optional[Route]:
         """Get the current active route"""
         return self.__currentRoute
+    
+    def logAllRoutes(self, title: str = "Registered Routes"):
+        """Log all registered routes from the router"""
+        print(f"\n{'='*60}")
+        print(f"{title}")
+        print(f"{'='*60}")
+        
+        if not self.__routes:
+            print("No routes registered.")
+        else:
+            print(f"Total routes: {len(self.__routes)}\n")
+            for path, route in sorted(self.__routes.items()):
+                route_type = route.routeType.name if hasattr(route.routeType, 'name') else str(route.routeType)
+                component_name = route.component.__name__ if hasattr(route.component, '__name__') else str(route.component)
+                print(f"  📍 {path:<30} -> {component_name:<25} [{route_type}]")
+        
+        print(f"{'='*60}\n")
+    
+    def getRoutes(self) -> Dict[str, Route]:
+        """Get all registered routes"""
+        return self.__routes.copy()
+    
+    def getRoutesByType(self, route_type) -> Dict[str, Route]:
+        """Get routes filtered by type (e.g., RouteType.DIALOG, RouteType.WINDOW)"""
+        return {path: route for path, route in self.__routes.items() if route.routeType == route_type}
