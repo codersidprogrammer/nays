@@ -25,7 +25,7 @@ setup(
     description="A NestJS-like Python modular framework with PySide6 UI support",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/dimaseditiya/nays",
+    url="https://github.com/codersidprogrammer/nays",
     packages=find_packages(exclude=["test", "tests", "*.tests"]),
     python_requires=">=3.8",
     install_requires=install_requires,
@@ -44,7 +44,7 @@ setup(
     ],
     keywords="framework module router dependency-injection pyside6 ui",
     project_urls={
-        "Bug Reports": "https://github.com/dimaseditiya/nays/issues",
-        "Source": "https://github.com/dimaseditiya/nays",
+        "Bug Reports": "https://github.com/codersidprogrammer/nays/issues",
+        "Source": "https://github.com/codersidprogrammer/nays",
     },
 )

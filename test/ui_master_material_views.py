@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMessageBox, QWidget, QLineEdit, QTreeWidget, QTableWidget
 from PySide6.QtCore import Qt
 
-from ui.base_dialog import BaseDialogView
-from ui.base_window import BaseWindowView
-from core.router import Router
+from nays.ui.base_dialog import BaseDialogView
+from nays.ui.base_window import BaseWindowView
+from nays.core.router import Router
 
 
 # ==================== Logger Service Definition ====================

@@ -6,7 +6,7 @@ These views extend BaseDialogView and implement lifecycle interfaces.
 from PySide6.QtWidgets import QVBoxLayout, QLabel, QPushButton, QMessageBox, QWidget
 from PySide6.QtCore import Qt
 
-from ui.base_dialog import BaseDialogView
+from nays.ui.base_dialog import BaseDialogView
 
 
 class HydroDashboardDialog(BaseDialogView):

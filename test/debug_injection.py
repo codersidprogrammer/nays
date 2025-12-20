@@ -6,8 +6,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from injector import Injector
-from core.router import Router
-from core.module import ModuleFactory
+from nays.core.router import Router
+from nays import ModuleFactory
 
 class TestClass:
     def __init__(self, router: Router = None):

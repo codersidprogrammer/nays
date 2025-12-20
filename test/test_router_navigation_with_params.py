@@ -16,11 +16,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from PySide6.QtWidgets import QApplication
 
-from core.module import NaysModule, Provider, ModuleFactory
-from core.route import Route, RouteType
-from core.router import Router
-from core.lifecycle import OnInit, OnDestroy
-from core.logger import setupLogger
+from nays import NaysModule, Provider, ModuleFactory
+from nays.core.route import Route, RouteType
+from nays.core.router import Router
+from nays.core.lifecycle import OnInit, OnDestroy
+from nays.core.logger import setupLogger
 
 # Create QApplication before importing views
 app = QApplication.instance() or QApplication(sys.argv)
@@ -45,7 +45,7 @@ class LoggerServiceImpl(LoggerService):
 
 
 # ==================== Test Views ====================
-from ui.base_dialog import BaseDialogView
+from nays.ui.base_dialog import BaseDialogView
 
 
 class TestParamView(BaseDialogView):

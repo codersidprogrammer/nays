@@ -20,7 +20,7 @@ pip install nays
 Or for development:
 
 ```bash
-git clone https://github.com/dimaseditiya/nays.git
+git clone https://github.com/codersidprogrammer/nays.git
 cd nays
 pip install -e .
 ```

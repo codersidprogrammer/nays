@@ -8,10 +8,10 @@ from abc import ABC, abstractmethod
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.module import NaysModule, Provider, ModuleFactory
-from core.route import Route, RouteType
-from core.lifecycle import OnInit
-from core.logger import setupLogger
+from nays import NaysModule, Provider, ModuleFactory
+from nays.core.route import Route, RouteType
+from nays.core.lifecycle import OnInit
+from nays.core.logger import setupLogger
 
 
 # ==================== Logger Service ====================

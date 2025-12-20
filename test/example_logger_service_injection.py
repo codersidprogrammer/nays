@@ -21,9 +21,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from abc import ABC, abstractmethod
 from PySide6.QtWidgets import QApplication
-from core.module import NaysModule, Provider, ModuleFactory
-from core.route import Route, RouteType
-from core.router import Router
+from nays import NaysModule, Provider, ModuleFactory
+from nays.core.route import Route, RouteType
+from nays.core.router import Router
 
 # Import your views
 from test.ui_master_material_views import (

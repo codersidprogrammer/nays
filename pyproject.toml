@@ -35,9 +35,9 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/dimaseditiya/nays"
-"Bug Reports" = "https://github.com/dimaseditiya/nays/issues"
-"Source" = "https://github.com/dimaseditiya/nays"
+"Homepage" = "https://github.com/codersidprogrammer/nays"
+"Bug Reports" = "https://github.com/codersidprogrammer/nays/issues"
+"Source" = "https://github.com/codersidprogrammer/nays"
 
 [tool.setuptools]
 packages = ["nays", "nays.core", "nays.ui", "nays.service"]

@@ -17,9 +17,9 @@ from abc import ABC, abstractmethod
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.module import NaysModule, Provider, ModuleFactory
-from core.route import Route, RouteType
-from core.router import Router
+from nays import NaysModule, Provider, ModuleFactory
+from nays.core.route import Route, RouteType
+from nays.core.router import Router
 from injector import Injector
 
 

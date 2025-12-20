@@ -12,7 +12,7 @@ Provides:
 __version__ = "1.0.0"
 __author__ = "Nays Contributors"
 
-from nays.core.module import NaysModule, Provider, ModuleFactory
+from nays.core.module import NaysModule, NaysModuleBase, ModuleMetadata, Provider, ModuleFactory
 from nays.core.route import Route, RouteType
 from nays.core.router import Router
 from nays.core.lifecycle import OnInit, OnDestroy
@@ -25,6 +25,8 @@ from nays.ui.base_widget import BaseWidgetView
 __all__ = [
     # Core
     'NaysModule',
+    'NaysModuleBase',
+    'ModuleMetadata',
     'Provider',
     'ModuleFactory',
     'Route',
