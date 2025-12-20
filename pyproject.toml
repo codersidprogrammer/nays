@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nays"
+version = "1.0.0"
+description = "A NestJS-like Python modular framework with PySide6 UI support"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Nays Contributors"}
+]
+keywords = ["framework", "module", "router", "dependency-injection", "pyside6", "ui"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "injector",
+    "dataclasses",
+    "python-dotenv",
+    "colorama",
+    "pyside6",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/dimaseditiya/nays"
+"Bug Reports" = "https://github.com/dimaseditiya/nays/issues"
+"Source" = "https://github.com/dimaseditiya/nays"
+
+[tool.setuptools]
+packages = ["nays", "nays.core", "nays.ui", "nays.service"]
