@@ -82,8 +82,6 @@ class Router:
         self.__currentInstance = routeInstance
         
         if route.routeType == RouteType.DIALOG:
-            # For dialogs, use show() instead of exec() to allow parent window to continue processing
-            # This enables button clicks to trigger further navigation
             widget.exec()
         else:
             widget.show()
