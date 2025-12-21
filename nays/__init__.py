@@ -17,6 +17,7 @@ from nays.core.route import Route, RouteType
 from nays.core.router import Router
 from nays.core.lifecycle import OnInit, OnDestroy
 from nays.core.logger import setupLogger
+from nays.service.logger_service import LoggerService, LoggerServiceImpl
 from nays.ui.base_view import BaseView
 from nays.ui.base_dialog import BaseDialogView
 from nays.ui.base_window import BaseWindowView
@@ -35,6 +36,9 @@ __all__ = [
     'OnInit',
     'OnDestroy',
     'setupLogger',
+    # Services
+    'LoggerService',
+    'LoggerServiceImpl',
     # UI
     'BaseView',
     'BaseDialogView',
