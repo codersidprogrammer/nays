@@ -1,8 +1,8 @@
 from colorama import Fore, Style, init
 import logging
 
-def setupLogger(self):
-    logger = logging.getLogger(self.__class__.__name__)
+def setupLogger(name: str = "nays") -> logging.Logger:
+    logger = logging.getLogger(name)
     logger.propagate = False
     if not logger.handlers:
         handler = logging.StreamHandler()
