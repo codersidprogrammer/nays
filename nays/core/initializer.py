@@ -16,19 +16,23 @@ class YamlConfigLoader:
     This class is designed to be used as a singleton.
     """
     
-    def __init__(self, config_path="config.yml"):
-        self.config_path = config_path
+    def __init__(self):
+        self.config_path = None
         self._data = None
         self._currentData: dict | list = None
+        self.__base_dir = os.path.dirname(os.path.abspath(__file__))
         # self.load_yaml()
         
+    def setBaseDir(self, base_dir: str):
+        self.__base_dir = base_dir
+        self.load_yaml()
+        
     def setConfigPath(self, config_path: str):
-        self.config_path = config_path
+        self.config_path = os.path.join(self.__base_dir, config_path)
         self.load_yaml()
 
     def load_yaml(self):
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        full_path = os.path.join(base_dir, self.config_path)
+        full_path = self.config_path or os.path.join(self.__base_dir, "config.yml")
 
         if not os.path.exists(full_path):
             raise FileNotFoundError(f"YAML config file not found: {full_path}")
