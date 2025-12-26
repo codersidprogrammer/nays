@@ -32,7 +32,7 @@ class YamlConfigLoader:
         self.load_yaml()
 
     def load_yaml(self):
-        full_path = self.config_path or os.path.join(self.__base_dir, "config.yml")
+        full_path = self.config_path if self.config_path is not None else os.path.join(self.__base_dir, "config.yml")
 
         if not os.path.exists(full_path):
             raise FileNotFoundError(f"YAML config file not found: {full_path}")
