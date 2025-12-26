@@ -20,9 +20,13 @@ class YamlConfigLoader:
         self.config_path = config_path
         self._data = None
         self._currentData: dict | list = None
-        self._load_yaml()
+        # self.load_yaml()
+        
+    def setConfigPath(self, config_path: str):
+        self.config_path = config_path
+        self.load_yaml()
 
-    def _load_yaml(self):
+    def load_yaml(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         full_path = os.path.join(base_dir, self.config_path)
 
