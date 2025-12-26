@@ -25,11 +25,9 @@ class YamlConfigLoader:
         
     def setBaseDir(self, base_dir: str):
         self.__base_dir = base_dir
-        self.load_yaml()
         
     def setConfigPath(self, config_path: str):
         self.config_path = os.path.join(self.__base_dir, config_path)
-        self.load_yaml()
 
     def load_yaml(self):
         full_path = self.config_path if self.config_path is not None else os.path.join(self.__base_dir, "config.yml")
