@@ -14,7 +14,7 @@ class BaseViewModel(QObject):
         super().__init__(parent)
         self._bindings: Dict[SignalInstance, List[Callable]] = {}
         self._auto_bind_methods()
-        self.logger = setupLogger(self)
+        self.logger = setupLogger(self.__class__.__name__)
     
     def bind(self, signal: SignalInstance, callback: Callable):
         try:
