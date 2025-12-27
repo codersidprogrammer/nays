@@ -527,19 +527,19 @@ class DataTableBuilderHandler(DataTableHandler):
 
         return results
 
-    def setValueFromModelThenChange(self, models: list[list[TableHandlerDataModel]], allowEmit: bool = True):
+    def setValueFromModelThenChange(self, models: list[list[TableHandlerDataModel]], allowEmit: bool = True, rebuildHeaders: bool = True):
         oldValue = self.allowEmitDataChange
         self.allowEmitDataChange = allowEmit
-        self.setValueFromModel(models)
+        self.setValueFromModel(models, rebuildHeaders)
         self.allowEmitDataChange = oldValue
 
-    def setValueFromModelAsColumnsThenChange(self, models: list[list[TableHandlerDataModel]], allowEmit: bool = True):
+    def setValueFromModelAsColumnsThenChange(self, models: list[list[TableHandlerDataModel]], allowEmit: bool = True, rebuildHeaders: bool = True):
         oldValue = self.allowEmitDataChange
         self.allowEmitDataChange = allowEmit
-        self.setValueFromModelAsColumns(models)
+        self.setValueFromModelAsColumns(models, rebuildHeaders)
         self.allowEmitDataChange = oldValue
 
-    def setValueFromModel(self, models: list[list[TableHandlerDataModel]]):
+    def setValueFromModel(self, models: list[list[TableHandlerDataModel]], rebuildHeaders: bool = True):
         """
         Set table values from a list of TableHandlerDataModel lists.
         Each inner list represents a row, and each TableHandlerDataModel represents a column.
@@ -561,7 +561,7 @@ class DataTableBuilderHandler(DataTableHandler):
         for row_idx, row_models in enumerate(models):
             for col_idx, model in enumerate(row_models):
                 # Set horizontal header if it's the first row
-                if row_idx == 0:
+                if row_idx == 0 and rebuildHeaders:
                     header_item = QTableWidgetItem(model.name)
                     header_item.setToolTip(model.description)
                     header_item.setData(Qt.ItemDataRole.UserRole, model.type)
