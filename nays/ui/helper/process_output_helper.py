@@ -815,6 +815,84 @@ def createCharm3DProcessOutputSubwindow(mdiArea, title: str, charm3d_process, wo
     return sub_window, process_widget
 
 
+def createBasePySideExecutorOutputSubwindow(mdiArea, title: str, executor) -> tuple[QMdiSubWindow, ProcessOutputWidget]:
+    """
+    Create a specialized subwindow for BasePySideExecutor process output
+    
+    This is a generic function that works with any BasePySideExecutor instance or its subclasses
+    (WamitPysideExecutor, etc.). It connects to the executor's outputReady, errorReady, and finished signals.
+    
+    Args:
+        mdiArea: QMdiArea to add the subwindow to
+        title: Window title
+        executor: BasePySideExecutor instance or subclass
+    
+    Returns:
+        tuple: (sub_window, process_output_widget)
+        
+    Example:
+        executor = WamitPysideExecutor(wamit_path)
+        executor.setWorkingDirectory(working_dir)
+        sub_window, widget = createBasePySideExecutorOutputSubwindow(
+            mdiArea, "Process Output", 
+            executor
+        )
+    """
+    logger = setupLogger("ProcessOutputHelper")
+    
+    # Create sub-window
+    sub_window = QMdiSubWindow()
+    sub_window.setWindowTitle(title)
+    
+    # Create process output widget
+    process_widget = ProcessOutputWidget(title)
+    
+    # Set the widget as the central widget of the subwindow
+    sub_window.setWidget(process_widget)
+    
+    # Add the sub-window to the MDI area
+    mdiArea.addSubWindow(sub_window)
+    
+    # Resize to a decent size
+    sub_window.resize(1000, 700)
+    
+    # Connect executor signals to widget display methods
+    # ExecutionResult objects are passed with stdout/stderr/returnCode
+    def handle_output(result):
+        if result.stdout:
+            process_widget.appendOutput(result.stdout)
+    
+    def handle_error(result):
+        if result.stderr:
+            process_widget.appendError(result.stderr)
+    
+    def handle_finished(result):
+        status_msg = f"Process finished with exit code: {result.returnCode}"
+        if result.returnCode == 0:
+            process_widget.appendOutput(status_msg)
+        else:
+            process_widget.appendError(status_msg)
+        process_widget.onProcessFinished(result.returnCode)
+    
+    executor.outputReady.connect(handle_output)
+    executor.errorReady.connect(handle_error)
+    executor.finished.connect(handle_finished)
+    
+    # Clear and initialize output widget
+    process_widget.clearOutput()
+    process_widget.appendOutput(f"Starting process: {title}")
+    process_widget.appendOutput(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    process_widget.appendOutput("-" * 50)
+    process_widget.onProcessStarted()
+    
+    # Show the sub-window
+    sub_window.show()
+    
+    logger.info(f'BasePySideExecutor process output subwindow created: {title}')
+    
+    return sub_window, process_widget
+
+
 def createWamitProcessOutputSubwindow(mdiArea, title: str, wamit_process, wamit_exe_path: str, working_dir: str) -> tuple[QMdiSubWindow, ProcessOutputWidget]:
     """
     Create a specialized subwindow for WAMIT process output
