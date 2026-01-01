@@ -11,6 +11,7 @@ class BasedTabularDataModel:
 
 @dataclass
 class TableHandlerDataModel:
+    id: int | str = None
     name: str = ''
     description: str = ''
     type: str = ''

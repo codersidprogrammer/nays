@@ -394,6 +394,8 @@ class DataTableBuilderHandler(DataTableHandler):
         """
         results: list[list[TableHandlerDataModel]] = []
         for row in range(self.table.rowCount()):
+            row_header_item = self.table.verticalHeaderItem(row)
+            row_header_id = row_header_item.data(Qt.ItemDataRole.WhatsThisPropertyRole) if row_header_item else None
             
             values = []
             for col in range(self.table.columnCount()):
@@ -412,6 +414,7 @@ class DataTableBuilderHandler(DataTableHandler):
                             # get current selected key (stored as data)
                             
                             values.insert(col, TableHandlerDataModel(
+                                id=row_header_id,
                                 name=col_name,
                                 description=header_item.toolTip(),
                                 type='combobox',
@@ -425,6 +428,7 @@ class DataTableBuilderHandler(DataTableHandler):
                             checkbox = container.findChild(QCheckBox)
                             if checkbox:
                                 values.insert(col, TableHandlerDataModel(
+                                    id=row_header_id,
                                     name=col_name,
                                     description=header_item.toolTip(),
                                     type='checkbox',
@@ -437,6 +441,7 @@ class DataTableBuilderHandler(DataTableHandler):
                         if item:
                             try:
                                 values.insert(col, TableHandlerDataModel(
+                                    id=row_header_id,
                                     name=col_name,
                                     description=header_item.toolTip(),
                                     type='editable',
@@ -446,6 +451,7 @@ class DataTableBuilderHandler(DataTableHandler):
 
                             except ValueError:
                                 values.insert(col, TableHandlerDataModel(
+                                    id=row_header_id,
                                     name=col_name,
                                     description=header_item.toolTip(),
                                     type='editable',
@@ -559,6 +565,16 @@ class DataTableBuilderHandler(DataTableHandler):
         
         # Set headers and populate data
         for row_idx, row_models in enumerate(models):
+            # Store id from the first model in the row (if available)
+            first_model = row_models[0] if row_models else None
+            if first_model and hasattr(first_model, 'id') and first_model.id is not None:
+                # Create or get vertical header item for this row
+                idString = str(first_model.id)
+                header_item = QTableWidgetItem(idString)
+                header_item.setData(Qt.ItemDataRole.UserRole, 'row_id')
+                header_item.setData(Qt.ItemDataRole.WhatsThisPropertyRole, first_model.id)
+                self.table.setVerticalHeaderItem(row_idx, header_item)
+            
             for col_idx, model in enumerate(row_models):
                 # Set horizontal header if it's the first row
                 if row_idx == 0 and rebuildHeaders:
@@ -572,6 +588,10 @@ class DataTableBuilderHandler(DataTableHandler):
                 match model.type:
                     case 'combobox':
                         combo = QComboBox()
+                        
+                        # Store the model id as a property on the combobox
+                        if hasattr(model, 'id') and model.id is not None:
+                            combo.setProperty('model_id', model.id)
                         
                         # Add items from model
                         for item_dict in model.items:
@@ -646,10 +666,8 @@ class DataTableBuilderHandler(DataTableHandler):
         # Set headers and populate data
         for col_idx, col_models in enumerate(models):
             
-            for row_idx, _model in enumerate(col_models):
+            for row_idx, model in enumerate(col_models):
                 # Set vertical header if it's the first column
-                
-                model = _model[col_idx]
                 if col_idx == 0 and rebuildHeaders:
                     # Extract row name from model name (remove _col suffix)
                     row_name = model.name.split('_col')[0] if '_col' in model.name else model.name
