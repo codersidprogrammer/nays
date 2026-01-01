@@ -624,7 +624,7 @@ class DataTableBuilderHandler(DataTableHandler):
                         
         self.__emitDataModelChange()
 
-    def setValueFromModelAsColumns(self, models: list[list[TableHandlerDataModel]]):
+    def setValueFromModelAsColumns(self, models: list[list[TableHandlerDataModel]], rebuildHeaders: bool = True):
         """
         Set table values from a list of TableHandlerDataModel lists for column-based layout.
         Each inner list represents a column, and each TableHandlerDataModel represents a row.
@@ -648,8 +648,9 @@ class DataTableBuilderHandler(DataTableHandler):
             
             for row_idx, _model in enumerate(col_models):
                 # Set vertical header if it's the first column
-                if col_idx == 0:
-                    model = _model[col_idx]
+                
+                model = _model[col_idx]
+                if col_idx == 0 and rebuildHeaders:
                     # Extract row name from model name (remove _col suffix)
                     row_name = model.name.split('_col')[0] if '_col' in model.name else model.name
                     header_item = QTableWidgetItem(row_name)
