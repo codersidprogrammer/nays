@@ -746,7 +746,8 @@ class TableViewHandler(QObject):
         savedData: List[Dict[str, Any]], 
         nameField: str = "name",
         valueField: str = "value",
-        valueColumn: int = 1
+        valueColumn: int = 1,
+        shouldEmit: bool = True
     ):
         """
         Update table values from saved data (e.g., from SQL persistence).
@@ -759,6 +760,8 @@ class TableViewHandler(QObject):
             nameField: Key for the name field in savedData (default 'name')
             valueField: Key for the value field in savedData (default 'value')
             valueColumn: Column index for values (default 1)
+            shouldEmit: If True, emit dataChanged signal after update (default True).
+                       Set to False to prevent triggering persistence callbacks during load.
         
         Note:
             - For combobox cells: value should be the key (e.g., -1, 0, 1), not the index
@@ -769,9 +772,9 @@ class TableViewHandler(QObject):
             # 1. Load structure from YAML
             handler.loadFromYamlConfig(yaml_config)
             
-            # 2. Load saved values from SQL
+            # 2. Load saved values from SQL (without triggering save callback)
             saved = [{'name': 'IRAD', 'value': 1}, {'name': 'IDIFF', 'value': -1}]
-            handler.updateValuesFromSaved(saved)
+            handler.updateValuesFromSaved(saved, shouldEmit=False)
         """
         if len(self.model.columnKeys) < 2:
             return
@@ -834,8 +837,8 @@ class TableViewHandler(QObject):
                 # Text cell - use value directly
                 self.model.rows[rowIdx][valueKey] = value
         
-        # Notify that data changed
-        if self.model.rows:
+        # Notify that data changed (only if shouldEmit is True)
+        if shouldEmit and self.model.rows:
             topLeft = self.model.index(0, 0)
             bottomRight = self.model.index(len(self.model.rows) - 1, self.model.columnCount() - 1)
             self.model.dataChanged.emit(topLeft, bottomRight)
