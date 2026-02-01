@@ -40,4 +40,13 @@ dependencies = [
 "Source" = "https://github.com/codersidprogrammer/nays"
 
 [tool.setuptools]
-packages = ["nays", "nays.core", "nays.ui", "nays.service"]
+packages = [
+    "nays",
+    "nays.core",
+    "nays.helper",
+    "nays.service",
+    "nays.ui",
+    "nays.ui.decorator",
+    "nays.ui.handler",
+    "nays.ui.helper",
+]
