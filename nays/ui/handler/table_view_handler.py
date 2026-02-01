@@ -1,7 +1,7 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 
-from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QApplication, QTableView
+from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QApplication, QTableView, QLineEdit
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QObject, Signal
 
 
@@ -43,6 +43,48 @@ class CheckBoxDelegate(QStyledItemDelegate):
         pass
 
 
+class MultiTypeCellDelegate(QStyledItemDelegate):
+    """
+    Delegate that supports different cell types per cell based on model data.
+    Uses Qt.UserRole to retrieve cell type and Qt.UserRole + 1 for combo items.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+    
+    def createEditor(self, parent, option, index):
+        cellType = index.data(Qt.UserRole)
+        
+        if cellType == "combobox":
+            combo = QComboBox(parent)
+            items = index.data(Qt.UserRole + 1) or []
+            combo.addItems(items)
+            return combo
+        elif cellType == "checkbox":
+            return None  # Checkbox handled via flags
+        else:
+            # Default text editor
+            return QLineEdit(parent)
+    
+    def setEditorData(self, editor, index: QModelIndex):
+        cellType = index.data(Qt.UserRole)
+        value = index.data(Qt.EditRole)
+        
+        if cellType == "combobox" and isinstance(editor, QComboBox):
+            if value is not None:
+                editor.setCurrentText(str(value))
+        elif isinstance(editor, QLineEdit):
+            editor.setText(str(value) if value is not None else "")
+    
+    def setModelData(self, editor, model, index: QModelIndex):
+        cellType = index.data(Qt.UserRole)
+        
+        if cellType == "combobox" and isinstance(editor, QComboBox):
+            model.setData(index, editor.currentText(), Qt.EditRole)
+        elif isinstance(editor, QLineEdit):
+            model.setData(index, editor.text(), Qt.EditRole)
+
+
 # ---------------------------------
 # Table Model
 # ---------------------------------
@@ -56,8 +98,13 @@ class TableViewModel(QAbstractTableModel):
         super().__init__(parent)
         self.headers = headers or []
         self.rows: List[Dict[str, Any]] = []
-        self.cellTypes: Dict[int, str] = {}  # column -> type mapping
+        self.cellTypes: Dict[int, str] = {}  # column -> type mapping (for column-based)
         self.columnKeys: List[str] = []  # Maps columns to dict keys
+        
+        # Per-cell type configuration: (row, col) -> type
+        self.cellTypeOverrides: Dict[Tuple[int, int], str] = {}
+        # Per-cell combo items: (row, col) -> list of items
+        self.cellComboItems: Dict[Tuple[int, int], List[str]] = {}
     
     # ===== Basics =====
     def rowCount(self, parent=QModelIndex()) -> int:
@@ -66,17 +113,33 @@ class TableViewModel(QAbstractTableModel):
     def columnCount(self, parent=QModelIndex()) -> int:
         return len(self.headers)
     
+    def getCellType(self, row: int, col: int) -> str:
+        """Get cell type for a specific cell, checking overrides first."""
+        # Check per-cell override first
+        if (row, col) in self.cellTypeOverrides:
+            return self.cellTypeOverrides[(row, col)]
+        # Fall back to column-based type
+        return self.cellTypes.get(col, "text")
+    
+    def setCellType(self, row: int, col: int, cellType: str, comboItems: List[str] = None):
+        """Set cell type for a specific cell."""
+        self.cellTypeOverrides[(row, col)] = cellType
+        if comboItems:
+            self.cellComboItems[(row, col)] = comboItems
+    
     # ===== Data Display & Editing =====
     def data(self, index: QModelIndex, role=Qt.DisplayRole) -> Any:
         if not index.isValid():
             return None
         
-        rowData = self.rows[index.row()]
+        row = index.row()
         col = index.column()
+        
+        rowData = self.rows[row]
         key = self.columnKeys[col] if col < len(self.columnKeys) else None
         value = rowData.get(key) if key else None
         
-        cellType = self.cellTypes.get(col, "text")
+        cellType = self.getCellType(row, col)
         
         if role == Qt.DisplayRole or role == Qt.EditRole:
             if cellType == "checkbox":
@@ -86,23 +149,32 @@ class TableViewModel(QAbstractTableModel):
         if role == Qt.CheckStateRole and cellType == "checkbox":
             return Qt.Checked if value else Qt.Unchecked
         
+        # Return cell type for delegate
+        if role == Qt.UserRole:
+            return cellType
+        
+        # Return combo items for delegate
+        if role == Qt.UserRole + 1:
+            return self.cellComboItems.get((row, col), [])
+        
         return None
     
     def setData(self, index: QModelIndex, value: Any, role=Qt.EditRole) -> bool:
         if not index.isValid():
             return False
         
+        row = index.row()
         col = index.column()
         key = self.columnKeys[col] if col < len(self.columnKeys) else None
         if not key:
             return False
         
-        cellType = self.cellTypes.get(col, "text")
+        cellType = self.getCellType(row, col)
         
         if cellType == "checkbox" and role == Qt.CheckStateRole:
-            self.rows[index.row()][key] = value == Qt.Checked
+            self.rows[row][key] = value == Qt.Checked
         elif role == Qt.EditRole:
-            self.rows[index.row()][key] = value
+            self.rows[row][key] = value
         else:
             return False
         
@@ -113,8 +185,9 @@ class TableViewModel(QAbstractTableModel):
     # ===== Flags =====
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         base = Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        row = index.row()
         col = index.column()
-        cellType = self.cellTypes.get(col, "text")
+        cellType = self.getCellType(row, col)
         
         if cellType == "checkbox":
             return base | Qt.ItemIsUserCheckable
@@ -146,6 +219,15 @@ class TableViewModel(QAbstractTableModel):
         self.beginRemoveRows(QModelIndex(), row, row)
         self.rows.pop(row)
         self.endRemoveRows()
+        
+        # Clean up cell type overrides for deleted row
+        keysToRemove = [k for k in self.cellTypeOverrides if k[0] == row]
+        for k in keysToRemove:
+            del self.cellTypeOverrides[k]
+        keysToRemove = [k for k in self.cellComboItems if k[0] == row]
+        for k in keysToRemove:
+            del self.cellComboItems[k]
+        
         self.dataModified.emit()
     
     def insertRow(self, row: int, rowData: Dict[str, Any] = None):
@@ -163,6 +245,8 @@ class TableViewModel(QAbstractTableModel):
         if len(self.rows) > 0:
             self.beginRemoveRows(QModelIndex(), 0, len(self.rows) - 1)
             self.rows.clear()
+            self.cellTypeOverrides.clear()
+            self.cellComboItems.clear()
             self.endRemoveRows()
             self.dataModified.emit()
 
@@ -193,6 +277,9 @@ class TableViewHandler(QObject):
         
         # Store delegates by column
         self.delegates: Dict[int, QStyledItemDelegate] = {}
+        
+        # Multi-type delegate for per-cell type support
+        self._multiTypeDelegate: Optional[MultiTypeCellDelegate] = None
     
     # ===== Column Configuration =====
     
@@ -225,6 +312,108 @@ class TableViewHandler(QObject):
             self.tableView.setItemDelegateForColumn(column, delegate)
         
         self.model.cellTypes[column] = cellType
+    
+    def enableMultiTypeCells(self):
+        """Enable per-cell type support using MultiTypeCellDelegate."""
+        if self._multiTypeDelegate is None:
+            self._multiTypeDelegate = MultiTypeCellDelegate()
+        # Apply to all columns
+        for col in range(len(self.headers)):
+            self.tableView.setItemDelegateForColumn(col, self._multiTypeDelegate)
+    
+    def setCellType(self, row: int, col: int, cellType: str, comboItems: List[str] = None):
+        """Set cell type for a specific cell."""
+        self.model.setCellType(row, col, cellType, comboItems)
+    
+    # ===== YAML Config Loading =====
+    
+    def loadFromYamlConfig(self, config: List[Dict[str, Any]], valueColumn: int = 1):
+        """
+        Load table data from YAML config format.
+        
+        Each config item should have:
+        - name: The row label/key
+        - type: 'editable', 'combobox', or 'checkbox'
+        - defaultValueIndex: Default value or index
+        - items: List of dicts for combobox options [{0: "Option A"}, {1: "Option B"}]
+        - description: Optional description
+        
+        Args:
+            config: List of config dictionaries
+            valueColumn: Column index for the value (default 1, assuming column 0 is name)
+        """
+        self.enableMultiTypeCells()
+        self.model.clearRows()
+        
+        for rowIdx, item in enumerate(config):
+            name = item.get("name", "")
+            itemType = item.get("type", "editable")
+            defaultValue = item.get("defaultValueIndex", "")
+            items = item.get("items", [])
+            description = item.get("description", "")
+            
+            # Map YAML type to cell type
+            if itemType == "combobox":
+                cellType = "combobox"
+            elif itemType == "checkbox":
+                cellType = "checkbox"
+            else:
+                cellType = "text"
+            
+            # Parse combo items from [{0: "text"}, {1: "text"}] format
+            comboItems = []
+            comboValueMap = {}  # Maps index to text
+            if items and cellType == "combobox":
+                for itemDict in items:
+                    for key, val in itemDict.items():
+                        comboItems.append(val)
+                        comboValueMap[int(key)] = val
+            
+            # Determine display value
+            if cellType == "combobox" and isinstance(defaultValue, int):
+                displayValue = comboValueMap.get(defaultValue, str(defaultValue))
+            else:
+                displayValue = defaultValue
+            
+            # Build row data based on column keys
+            rowData = {}
+            if len(self.model.columnKeys) >= 1:
+                rowData[self.model.columnKeys[0]] = name
+            if len(self.model.columnKeys) >= 2:
+                rowData[self.model.columnKeys[1]] = displayValue
+            if len(self.model.columnKeys) >= 3:
+                rowData[self.model.columnKeys[2]] = description
+            
+            # Add the row
+            self.model.addRow(rowData)
+            
+            # Set cell type for the value column
+            self.model.setCellType(rowIdx, valueColumn, cellType, comboItems)
+        
+        self.tableView.resizeColumnsToContents()
+        self.rowCountChanged.emit(self.model.rowCount())
+    
+    def getConfigValues(self) -> Dict[str, Any]:
+        """
+        Get values as a dictionary mapping names to values.
+        Useful for extracting config values after editing.
+        
+        Returns:
+            Dict mapping row names (column 0) to values (column 1)
+        """
+        result = {}
+        if len(self.model.columnKeys) < 2:
+            return result
+        
+        nameKey = self.model.columnKeys[0]
+        valueKey = self.model.columnKeys[1]
+        
+        for row in self.model.rows:
+            name = row.get(nameKey, "")
+            value = row.get(valueKey, "")
+            result[name] = value
+        
+        return result
     
     # ===== Data Operations =====
     

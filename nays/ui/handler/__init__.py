@@ -8,6 +8,7 @@ from nays.ui.handler.table_view_handler import (
     TableViewModel,
     ComboBoxDelegate,
     CheckBoxDelegate,
+    MultiTypeCellDelegate,
 )
 from nays.ui.handler.data_table_handler import (
     DataTableHandler,
@@ -23,6 +24,7 @@ __all__ = [
     'TableViewModel',
     'ComboBoxDelegate',
     'CheckBoxDelegate',
+    'MultiTypeCellDelegate',
     # DataTable Handler
     'DataTableHandler',
     'DataTableBuilderHandler',
