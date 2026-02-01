@@ -2,7 +2,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QApplication, QTableView, QLineEdit
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QObject, Signal
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QObject, Signal, QEvent
 
 
 # ---------------------------------
@@ -61,10 +61,23 @@ class MultiTypeCellDelegate(QStyledItemDelegate):
             combo.addItems(items)
             return combo
         elif cellType == "checkbox":
-            return None  # Checkbox handled via flags
+            return None  # Checkbox handled via editorEvent
         else:
             # Default text editor
             return QLineEdit(parent)
+    
+    def editorEvent(self, event, model, option, index):
+        """Handle checkbox toggle on mouse click."""
+        cellType = index.data(Qt.UserRole)
+        
+        if cellType == "checkbox":
+            # Handle mouse button release to toggle checkbox
+            if event.type() == QEvent.MouseButtonRelease:
+                currentState = index.data(Qt.CheckStateRole)
+                newState = Qt.Unchecked if currentState == Qt.Checked else Qt.Checked
+                return model.setData(index, newState, Qt.CheckStateRole)
+        
+        return super().editorEvent(event, model, option, index)
     
     def setEditorData(self, editor, index: QModelIndex):
         cellType = index.data(Qt.UserRole)
