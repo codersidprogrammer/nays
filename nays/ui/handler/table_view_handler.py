@@ -126,6 +126,9 @@ class TableViewModel(QAbstractTableModel):
         self.cellDisplayToKey: Dict[Tuple[int, int], Dict[str, Any]] = {}
         # Store actual key values: (row, col) -> key
         self.cellKeyValues: Dict[Tuple[int, int], Any] = {}
+        
+        # Checkbox labels: (row, col) -> (checked_label, unchecked_label)
+        self.cellCheckboxLabels: Dict[Tuple[int, int], Tuple[str, str]] = {}
     
     # ===== Basics =====
     def rowCount(self, parent=QModelIndex()) -> int:
@@ -143,7 +146,8 @@ class TableViewModel(QAbstractTableModel):
         return self.cellTypes.get(col, "text")
     
     def setCellType(self, row: int, col: int, cellType: str, comboItems: List[str] = None,
-                    keyToDisplay: Dict[Any, str] = None, displayToKey: Dict[str, Any] = None):
+                    keyToDisplay: Dict[Any, str] = None, displayToKey: Dict[str, Any] = None,
+                    checkboxLabels: Tuple[str, str] = None):
         """Set cell type for a specific cell."""
         self.cellTypeOverrides[(row, col)] = cellType
         if comboItems:
@@ -152,6 +156,8 @@ class TableViewModel(QAbstractTableModel):
             self.cellKeyToDisplay[(row, col)] = keyToDisplay
         if displayToKey:
             self.cellDisplayToKey[(row, col)] = displayToKey
+        if checkboxLabels:
+            self.cellCheckboxLabels[(row, col)] = checkboxLabels
     
     def setKeyValue(self, row: int, col: int, keyValue: Any):
         """Set the key value for a combobox cell."""
@@ -177,6 +183,11 @@ class TableViewModel(QAbstractTableModel):
         
         if role == Qt.DisplayRole or role == Qt.EditRole:
             if cellType == "checkbox":
+                # Return checkbox label if configured
+                labels = self.cellCheckboxLabels.get((row, col))
+                if labels:
+                    checkedLabel, uncheckedLabel = labels
+                    return checkedLabel if value else uncheckedLabel
                 return ""
             return value
         
@@ -275,6 +286,9 @@ class TableViewModel(QAbstractTableModel):
         keysToRemove = [k for k in self.cellKeyValues if k[0] == row]
         for k in keysToRemove:
             del self.cellKeyValues[k]
+        keysToRemove = [k for k in self.cellCheckboxLabels if k[0] == row]
+        for k in keysToRemove:
+            del self.cellCheckboxLabels[k]
         
         self.dataModified.emit()
     
@@ -298,6 +312,7 @@ class TableViewModel(QAbstractTableModel):
             self.cellKeyToDisplay.clear()
             self.cellDisplayToKey.clear()
             self.cellKeyValues.clear()
+            self.cellCheckboxLabels.clear()
             self.endRemoveRows()
             self.dataModified.emit()
 
@@ -313,7 +328,146 @@ class TableViewHandler(QObject):
     dataChanged = Signal(list)  # emits list of dicts
     cellChanged = Signal(int, int, object)  # row, col, value
     
-    def __init__(self, tableView: QTableView, headers: List[str] = None):
+    # Default professional stylesheet
+    DEFAULT_STYLE = """
+        QTableView {
+            border: 1px solid #d0d7de;
+            border-radius: 4px;
+            background-color: #ffffff;
+            gridline-color: #e8ebee;
+            selection-background-color: #0969da;
+            selection-color: #ffffff;
+            font-size: 13px;
+        }
+        QTableView::item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #e8ebee;
+        }
+        QTableView::item:selected {
+            background-color: #ddf4ff;
+            color: #1f2328;
+        }
+        QTableView::item:hover {
+            background-color: #f6f8fa;
+        }
+        QHeaderView::section {
+            background-color: #f6f8fa;
+            color: #1f2328;
+            padding: 8px 6px;
+            font-weight: 600;
+            border: none;
+            border-bottom: 2px solid #d0d7de;
+            border-right: 1px solid #e8ebee;
+        }
+        QHeaderView::section:horizontal:last {
+            border-right: none;
+        }
+        QHeaderView::section:hover {
+            background-color: #eaeef2;
+        }
+        QScrollBar:vertical {
+            background: #f6f8fa;
+            width: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:vertical {
+            background: #c9d1d9;
+            border-radius: 5px;
+            min-height: 20px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #8b949e;
+        }
+        QScrollBar:horizontal {
+            background: #f6f8fa;
+            height: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:horizontal {
+            background: #c9d1d9;
+            border-radius: 5px;
+            min-width: 20px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: #8b949e;
+        }
+        QScrollBar::add-line, QScrollBar::sub-line {
+            border: none;
+            background: none;
+        }
+    """
+    
+    # Dark theme stylesheet
+    DARK_STYLE = """
+        QTableView {
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            background-color: #0d1117;
+            gridline-color: #21262d;
+            selection-background-color: #388bfd;
+            selection-color: #ffffff;
+            font-size: 13px;
+            color: #c9d1d9;
+        }
+        QTableView::item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        QTableView::item:selected {
+            background-color: #1f6feb;
+            color: #ffffff;
+        }
+        QTableView::item:hover {
+            background-color: #161b22;
+        }
+        QHeaderView::section {
+            background-color: #161b22;
+            color: #c9d1d9;
+            padding: 8px 6px;
+            font-weight: 600;
+            border: none;
+            border-bottom: 2px solid #30363d;
+            border-right: 1px solid #21262d;
+        }
+        QHeaderView::section:horizontal:last {
+            border-right: none;
+        }
+        QHeaderView::section:hover {
+            background-color: #21262d;
+        }
+        QScrollBar:vertical {
+            background: #161b22;
+            width: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:vertical {
+            background: #30363d;
+            border-radius: 5px;
+            min-height: 20px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #484f58;
+        }
+        QScrollBar:horizontal {
+            background: #161b22;
+            height: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:horizontal {
+            background: #30363d;
+            border-radius: 5px;
+            min-width: 20px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: #484f58;
+        }
+        QScrollBar::add-line, QScrollBar::sub-line {
+            border: none;
+            background: none;
+        }
+    """
+    
+    def __init__(self, tableView: QTableView, headers: List[str] = None, applyDefaultStyle: bool = False):
         super().__init__()
         self.tableView = tableView
         self.headers = headers or []
@@ -331,6 +485,44 @@ class TableViewHandler(QObject):
         
         # Multi-type delegate for per-cell type support
         self._multiTypeDelegate: Optional[MultiTypeCellDelegate] = None
+        
+        # Apply default style if requested
+        if applyDefaultStyle:
+            self.applyStyle()
+    
+    # ===== Styling =====
+    
+    def applyStyle(self, style: str = None):
+        """
+        Apply a stylesheet to the table view.
+        
+        Args:
+            style: CSS stylesheet string. If None, applies DEFAULT_STYLE.
+                   Use TableViewHandler.DARK_STYLE for dark theme.
+        """
+        if style is None:
+            style = self.DEFAULT_STYLE
+        self.tableView.setStyleSheet(style)
+        
+        # Apply some sensible defaults
+        self.tableView.setAlternatingRowColors(False)
+        self.tableView.setShowGrid(True)
+        self.tableView.horizontalHeader().setStretchLastSection(True)
+        self.tableView.verticalHeader().setDefaultSectionSize(32)
+        self.tableView.setSelectionBehavior(QTableView.SelectRows)
+    
+    def applyDarkStyle(self):
+        """Apply dark theme styling to the table view."""
+        self.applyStyle(self.DARK_STYLE)
+    
+    def setCustomStyle(self, stylesheet: str):
+        """
+        Apply a custom stylesheet to the table view.
+        
+        Args:
+            stylesheet: Custom CSS stylesheet string.
+        """
+        self.tableView.setStyleSheet(stylesheet)
     
     # ===== Column Configuration =====
     
@@ -372,9 +564,19 @@ class TableViewHandler(QObject):
         for col in range(len(self.headers)):
             self.tableView.setItemDelegateForColumn(col, self._multiTypeDelegate)
     
-    def setCellType(self, row: int, col: int, cellType: str, comboItems: List[str] = None):
-        """Set cell type for a specific cell."""
-        self.model.setCellType(row, col, cellType, comboItems)
+    def setCellType(self, row: int, col: int, cellType: str, comboItems: List[str] = None,
+                    checkboxLabels: Tuple[str, str] = None):
+        """
+        Set cell type for a specific cell.
+        
+        Args:
+            row: Row index
+            col: Column index
+            cellType: 'text', 'combobox', or 'checkbox'
+            comboItems: List of combo items (for combobox type)
+            checkboxLabels: Tuple of (checked_label, unchecked_label) for checkbox display
+        """
+        self.model.setCellType(row, col, cellType, comboItems, checkboxLabels=checkboxLabels)
     
     # ===== YAML Config Loading =====
     
@@ -392,7 +594,10 @@ class TableViewHandler(QObject):
         - type: 'editable', 'combobox', or 'checkbox'
         - defaultValueIndex: For combobox, this is the INDEX into the items list (0-based).
                             For editable, this is the default value.
+                            For checkbox, use True/False or 1/0 for checked state.
         - items: List of dicts for combobox options [{-1: "Option A"}, {0: "Option B"}, {1: "Option C"}]
+        - checkedLabel: Optional label to display when checkbox is checked (e.g., "Set as 1")
+        - uncheckedLabel: Optional label to display when checkbox is unchecked (e.g., "Set as 0")
         - description: Optional description
         
         Args:
@@ -411,12 +616,19 @@ class TableViewHandler(QObject):
         self.enableMultiTypeCells()
         self.model.clearRows()
         
+        # Ensure columnKeys is set from headers if not already set
+        if not self.model.columnKeys and self.model.headers:
+            self.model.columnKeys = list(self.model.headers)
+        
         for rowIdx, item in enumerate(config):
             name = item.get("name", "")
             itemType = item.get("type", "editable")
             defaultValueIndex = item.get("defaultValueIndex", "")
             items = item.get("items", [])
             description = item.get("description", "")
+            # Checkbox labels
+            checkedLabel = item.get("checkedLabel", None)
+            uncheckedLabel = item.get("uncheckedLabel", None)
             
             # Map YAML type to cell type
             if itemType == "combobox":
@@ -472,11 +684,17 @@ class TableViewHandler(QObject):
             # Add the row
             self.model.addRow(rowData)
             
+            # Build checkbox labels tuple if provided
+            checkboxLabels = None
+            if cellType == "checkbox" and (checkedLabel or uncheckedLabel):
+                checkboxLabels = (checkedLabel or "", uncheckedLabel or "")
+            
             # Set cell type for the value column with mappings
             self.model.setCellType(
                 rowIdx, valueColumn, cellType, comboItems,
                 keyToDisplay=keyToDisplay,
-                displayToKey=displayToKey
+                displayToKey=displayToKey,
+                checkboxLabels=checkboxLabels
             )
             
             # Store the actual key value
