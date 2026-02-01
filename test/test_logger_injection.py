@@ -38,7 +38,7 @@ class LoggerServiceImpl(LoggerService):
     """Logger service implementation using setupLogger"""
     
     def __init__(self):
-        self.logger = setupLogger(self)
+        self.logger = setupLogger(self.__class__.__name__)
     
     def debug(self, message: str):
         self.logger.debug(message)

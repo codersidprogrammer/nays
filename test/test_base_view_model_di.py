@@ -8,6 +8,7 @@ import unittest
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from injector import inject
 from PySide6.QtCore import QObject, Signal
 
 from nays import (
@@ -33,6 +34,8 @@ class DataService(ABC):
 
 class DataServiceImpl(DataService):
     """Implementation of data service"""
+    
+    @inject
     def __init__(self, logger: LoggerService):
         self.logger = logger
         self.data = {"value": 100, "status": "ready"}
@@ -55,6 +58,8 @@ class HydroService(ABC):
 
 class HydroServiceImpl(HydroService):
     """Implementation of hydro service"""
+    
+    @inject
     def __init__(self, logger: LoggerService):
         self.logger = logger
         self.hydro_data = {"pressure": 150.0, "flow": 50.0}
@@ -73,6 +78,8 @@ class LineService(ABC):
 
 class LineServiceImpl(LineService):
     """Implementation of line service"""
+    
+    @inject
     def __init__(self, logger: LoggerService):
         self.logger = logger
         self.line_data = {"voltage": 220.0, "current": 10.0}
@@ -321,7 +328,7 @@ class TestBaseViewModelDI(unittest.TestCase):
     
     def test_view_model_in_module_hierarchy(self):
         """Test ViewModels work in complete module hierarchy"""
-        # Root module
+        # Root module with logger
         logger_provider = Provider(provide=LoggerService, useClass=LoggerServiceImpl)
         
         @NaysModule(
@@ -335,6 +342,7 @@ class TestBaseViewModelDI(unittest.TestCase):
         hydro_provider = Provider(provide=HydroService, useClass=HydroServiceImpl)
         
         @NaysModule(
+            imports=[RootModule],
             providers=[hydro_provider],
             exports=[HydroService]
         )
@@ -345,6 +353,7 @@ class TestBaseViewModelDI(unittest.TestCase):
         line_provider = Provider(provide=LineService, useClass=LineServiceImpl)
         
         @NaysModule(
+            imports=[RootModule],
             providers=[line_provider],
             exports=[LineService]
         )
@@ -353,7 +362,7 @@ class TestBaseViewModelDI(unittest.TestCase):
         
         # Create factory with module hierarchy
         @NaysModule(
-            imports=[HydroModule, LineModule]
+            imports=[RootModule, HydroModule, LineModule]
         )
         class MainModule:
             pass

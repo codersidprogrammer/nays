@@ -45,7 +45,7 @@ class LoggerService(ABC):
 
 class LoggerServiceImpl(LoggerService):
     def __init__(self):
-        self.logger = setupLogger(self)
+        self.logger = setupLogger(self.__class__.__name__)
 
     def log(self, message: str):
         self.logger.info(message)
