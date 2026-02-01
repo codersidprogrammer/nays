@@ -312,6 +312,96 @@ class TestYamlConfigLoading(unittest.TestCase):
         )
         
         print("✅ Mixed cell types test passed!")
+    
+    def testComboDisplayModeValue(self):
+        """Test comboDisplayMode='value' shows text values."""
+        config = yaml.safe_load(SAMPLE_CONFIG)
+        generalConfig = config['hydrodynamics']['generalConfig']
+        
+        tableView = QTableView()
+        headers = ["Parameter", "Value", "Description"]
+        handler = TableViewHandler(tableView, headers)
+        
+        handler.setupColumns([
+            ("name", "text"),
+            ("value", "text"),
+            ("description", "text"),
+        ])
+        
+        # Load with value mode (default)
+        handler.loadFromYamlConfig(generalConfig, valueColumn=1, comboDisplayMode="value")
+        
+        # Check displayed value shows the text
+        data = handler.getData()
+        self.assertEqual(data[1]["value"], "Square root of panel's area")
+        self.assertEqual(data[2]["value"], "Do executed FORCE")
+        
+        # Check combo items show values
+        comboItems = handler.model.cellComboItems.get((1, 1), [])
+        self.assertIn("Square root of panel's area", comboItems)
+        self.assertIn("Panel's maximum diagonal", comboItems)
+        
+        print("✅ comboDisplayMode='value' test passed!")
+    
+    def testComboDisplayModeKey(self):
+        """Test comboDisplayMode='key' shows index keys."""
+        config = yaml.safe_load(SAMPLE_CONFIG)
+        generalConfig = config['hydrodynamics']['generalConfig']
+        
+        tableView = QTableView()
+        headers = ["Parameter", "Value", "Description"]
+        handler = TableViewHandler(tableView, headers)
+        
+        handler.setupColumns([
+            ("name", "text"),
+            ("value", "text"),
+            ("description", "text"),
+        ])
+        
+        # Load with key mode
+        handler.loadFromYamlConfig(generalConfig, valueColumn=1, comboDisplayMode="key")
+        
+        # Check displayed value shows the key/index
+        data = handler.getData()
+        self.assertEqual(data[1]["value"], "0")  # IDIAG defaultValueIndex=0
+        self.assertEqual(data[2]["value"], "1")  # IFORCE defaultValueIndex=1
+        
+        # Check combo items show keys
+        comboItems = handler.model.cellComboItems.get((1, 1), [])
+        self.assertIn("0", comboItems)
+        self.assertIn("1", comboItems)
+        
+        print("✅ comboDisplayMode='key' test passed!")
+    
+    def testComboDisplayModeBoth(self):
+        """Test comboDisplayMode='both' shows 'key: value' format."""
+        config = yaml.safe_load(SAMPLE_CONFIG)
+        generalConfig = config['hydrodynamics']['generalConfig']
+        
+        tableView = QTableView()
+        headers = ["Parameter", "Value", "Description"]
+        handler = TableViewHandler(tableView, headers)
+        
+        handler.setupColumns([
+            ("name", "text"),
+            ("value", "text"),
+            ("description", "text"),
+        ])
+        
+        # Load with both mode
+        handler.loadFromYamlConfig(generalConfig, valueColumn=1, comboDisplayMode="both")
+        
+        # Check displayed value shows "key: value" format
+        data = handler.getData()
+        self.assertEqual(data[1]["value"], "0: Square root of panel's area")
+        self.assertEqual(data[2]["value"], "1: Do executed FORCE")
+        
+        # Check combo items show "key: value" format
+        comboItems = handler.model.cellComboItems.get((1, 1), [])
+        self.assertIn("0: Square root of panel's area", comboItems)
+        self.assertIn("1: Panel's maximum diagonal", comboItems)
+        
+        print("✅ comboDisplayMode='both' test passed!")
 
 
 # ---------------------------------

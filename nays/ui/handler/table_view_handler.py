@@ -327,7 +327,12 @@ class TableViewHandler(QObject):
     
     # ===== YAML Config Loading =====
     
-    def loadFromYamlConfig(self, config: List[Dict[str, Any]], valueColumn: int = 1):
+    def loadFromYamlConfig(
+        self, 
+        config: List[Dict[str, Any]], 
+        valueColumn: int = 1,
+        comboDisplayMode: str = "value"
+    ):
         """
         Load table data from YAML config format.
         
@@ -341,6 +346,10 @@ class TableViewHandler(QObject):
         Args:
             config: List of config dictionaries
             valueColumn: Column index for the value (default 1, assuming column 0 is name)
+            comboDisplayMode: How to display combo items:
+                - "value": Show the text value (e.g., "Square root of panel's area")
+                - "key": Show the key/index (e.g., "0")
+                - "both": Show "key: value" format (e.g., "0: Square root of panel's area")
         """
         self.enableMultiTypeCells()
         self.model.clearRows()
@@ -362,16 +371,28 @@ class TableViewHandler(QObject):
             
             # Parse combo items from [{0: "text"}, {1: "text"}] format
             comboItems = []
-            comboValueMap = {}  # Maps index to text
+            comboKeyMap = {}  # Maps index to display text based on mode
+            comboValueMap = {}  # Maps index to original value text
             if items and cellType == "combobox":
                 for itemDict in items:
                     for key, val in itemDict.items():
-                        comboItems.append(val)
-                        comboValueMap[int(key)] = val
+                        keyInt = int(key)
+                        comboValueMap[keyInt] = val
+                        
+                        # Format combo item based on display mode
+                        if comboDisplayMode == "key":
+                            displayText = str(key)
+                        elif comboDisplayMode == "both":
+                            displayText = f"{key}: {val}"
+                        else:  # "value" (default)
+                            displayText = val
+                        
+                        comboItems.append(displayText)
+                        comboKeyMap[keyInt] = displayText
             
-            # Determine display value
+            # Determine display value based on mode
             if cellType == "combobox" and isinstance(defaultValue, int):
-                displayValue = comboValueMap.get(defaultValue, str(defaultValue))
+                displayValue = comboKeyMap.get(defaultValue, str(defaultValue))
             else:
                 displayValue = defaultValue
             
