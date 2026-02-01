@@ -103,8 +103,16 @@ class TableViewModel(QAbstractTableModel):
         
         # Per-cell type configuration: (row, col) -> type
         self.cellTypeOverrides: Dict[Tuple[int, int], str] = {}
-        # Per-cell combo items: (row, col) -> list of items
+        # Per-cell combo items: (row, col) -> list of display items
         self.cellComboItems: Dict[Tuple[int, int], List[str]] = {}
+        
+        # Combo key/value mappings for each cell
+        # (row, col) -> {key: display_text}
+        self.cellKeyToDisplay: Dict[Tuple[int, int], Dict[Any, str]] = {}
+        # (row, col) -> {display_text: key}
+        self.cellDisplayToKey: Dict[Tuple[int, int], Dict[str, Any]] = {}
+        # Store actual key values: (row, col) -> key
+        self.cellKeyValues: Dict[Tuple[int, int], Any] = {}
     
     # ===== Basics =====
     def rowCount(self, parent=QModelIndex()) -> int:
@@ -121,11 +129,24 @@ class TableViewModel(QAbstractTableModel):
         # Fall back to column-based type
         return self.cellTypes.get(col, "text")
     
-    def setCellType(self, row: int, col: int, cellType: str, comboItems: List[str] = None):
+    def setCellType(self, row: int, col: int, cellType: str, comboItems: List[str] = None,
+                    keyToDisplay: Dict[Any, str] = None, displayToKey: Dict[str, Any] = None):
         """Set cell type for a specific cell."""
         self.cellTypeOverrides[(row, col)] = cellType
         if comboItems:
             self.cellComboItems[(row, col)] = comboItems
+        if keyToDisplay:
+            self.cellKeyToDisplay[(row, col)] = keyToDisplay
+        if displayToKey:
+            self.cellDisplayToKey[(row, col)] = displayToKey
+    
+    def setKeyValue(self, row: int, col: int, keyValue: Any):
+        """Set the key value for a combobox cell."""
+        self.cellKeyValues[(row, col)] = keyValue
+    
+    def getKeyValue(self, row: int, col: int) -> Any:
+        """Get the key value for a combobox cell."""
+        return self.cellKeyValues.get((row, col))
     
     # ===== Data Display & Editing =====
     def data(self, index: QModelIndex, role=Qt.DisplayRole) -> Any:
@@ -175,6 +196,11 @@ class TableViewModel(QAbstractTableModel):
             self.rows[row][key] = value == Qt.Checked
         elif role == Qt.EditRole:
             self.rows[row][key] = value
+            # Update key value if this is a combobox cell
+            if cellType == "combobox" and (row, col) in self.cellDisplayToKey:
+                displayToKey = self.cellDisplayToKey[(row, col)]
+                if value in displayToKey:
+                    self.cellKeyValues[(row, col)] = displayToKey[value]
         else:
             return False
         
@@ -227,6 +253,15 @@ class TableViewModel(QAbstractTableModel):
         keysToRemove = [k for k in self.cellComboItems if k[0] == row]
         for k in keysToRemove:
             del self.cellComboItems[k]
+        keysToRemove = [k for k in self.cellKeyToDisplay if k[0] == row]
+        for k in keysToRemove:
+            del self.cellKeyToDisplay[k]
+        keysToRemove = [k for k in self.cellDisplayToKey if k[0] == row]
+        for k in keysToRemove:
+            del self.cellDisplayToKey[k]
+        keysToRemove = [k for k in self.cellKeyValues if k[0] == row]
+        for k in keysToRemove:
+            del self.cellKeyValues[k]
         
         self.dataModified.emit()
     
@@ -247,6 +282,9 @@ class TableViewModel(QAbstractTableModel):
             self.rows.clear()
             self.cellTypeOverrides.clear()
             self.cellComboItems.clear()
+            self.cellKeyToDisplay.clear()
+            self.cellDisplayToKey.clear()
+            self.cellKeyValues.clear()
             self.endRemoveRows()
             self.dataModified.emit()
 
@@ -339,8 +377,9 @@ class TableViewHandler(QObject):
         Each config item should have:
         - name: The row label/key
         - type: 'editable', 'combobox', or 'checkbox'
-        - defaultValueIndex: Default value or index
-        - items: List of dicts for combobox options [{0: "Option A"}, {1: "Option B"}]
+        - defaultValueIndex: For combobox, this is the INDEX into the items list (0-based).
+                            For editable, this is the default value.
+        - items: List of dicts for combobox options [{-1: "Option A"}, {0: "Option B"}, {1: "Option C"}]
         - description: Optional description
         
         Args:
@@ -350,6 +389,11 @@ class TableViewHandler(QObject):
                 - "value": Show the text value (e.g., "Square root of panel's area")
                 - "key": Show the key/index (e.g., "0")
                 - "both": Show "key: value" format (e.g., "0: Square root of panel's area")
+        
+        Note:
+            defaultValueIndex is the position in the items list (0, 1, 2, ...), not the key.
+            For example, if items = [{-1: "A"}, {0: "B"}, {1: "C"}] and defaultValueIndex = 2,
+            the selected item is {1: "C"} with key=1.
         """
         self.enableMultiTypeCells()
         self.model.clearRows()
@@ -357,7 +401,7 @@ class TableViewHandler(QObject):
         for rowIdx, item in enumerate(config):
             name = item.get("name", "")
             itemType = item.get("type", "editable")
-            defaultValue = item.get("defaultValueIndex", "")
+            defaultValueIndex = item.get("defaultValueIndex", "")
             items = item.get("items", [])
             description = item.get("description", "")
             
@@ -369,15 +413,17 @@ class TableViewHandler(QObject):
             else:
                 cellType = "text"
             
-            # Parse combo items from [{0: "text"}, {1: "text"}] format
-            comboItems = []
-            comboKeyMap = {}  # Maps index to display text based on mode
-            comboValueMap = {}  # Maps index to original value text
+            # Parse combo items from [{key: "text"}, ...] format
+            comboItems = []  # Display items for dropdown
+            keyToDisplay = {}  # Maps key to display text
+            displayToKey = {}  # Maps display text to key
+            itemsList = []  # List of (key, value) tuples in order
+            
             if items and cellType == "combobox":
                 for itemDict in items:
                     for key, val in itemDict.items():
                         keyInt = int(key)
-                        comboValueMap[keyInt] = val
+                        itemsList.append((keyInt, val))
                         
                         # Format combo item based on display mode
                         if comboDisplayMode == "key":
@@ -388,13 +434,18 @@ class TableViewHandler(QObject):
                             displayText = val
                         
                         comboItems.append(displayText)
-                        comboKeyMap[keyInt] = displayText
+                        keyToDisplay[keyInt] = displayText
+                        displayToKey[displayText] = keyInt
             
-            # Determine display value based on mode
-            if cellType == "combobox" and isinstance(defaultValue, int):
-                displayValue = comboKeyMap.get(defaultValue, str(defaultValue))
-            else:
-                displayValue = defaultValue
+            # Determine display value and actual key based on defaultValueIndex
+            displayValue = defaultValueIndex
+            actualKeyValue = None
+            
+            if cellType == "combobox" and isinstance(defaultValueIndex, int) and itemsList:
+                # defaultValueIndex is the index in the items list
+                if 0 <= defaultValueIndex < len(itemsList):
+                    actualKeyValue = itemsList[defaultValueIndex][0]  # The key
+                    displayValue = keyToDisplay.get(actualKeyValue, str(actualKeyValue))
             
             # Build row data based on column keys
             rowData = {}
@@ -408,19 +459,33 @@ class TableViewHandler(QObject):
             # Add the row
             self.model.addRow(rowData)
             
-            # Set cell type for the value column
-            self.model.setCellType(rowIdx, valueColumn, cellType, comboItems)
+            # Set cell type for the value column with mappings
+            self.model.setCellType(
+                rowIdx, valueColumn, cellType, comboItems,
+                keyToDisplay=keyToDisplay,
+                displayToKey=displayToKey
+            )
+            
+            # Store the actual key value
+            if actualKeyValue is not None:
+                self.model.setKeyValue(rowIdx, valueColumn, actualKeyValue)
         
         self.tableView.resizeColumnsToContents()
         self.rowCountChanged.emit(self.model.rowCount())
     
-    def getConfigValues(self) -> Dict[str, Any]:
+    def getConfigValues(self, valueColumn: int = 1, returnKeys: bool = True) -> Dict[str, Any]:
         """
         Get values as a dictionary mapping names to values.
         Useful for extracting config values after editing.
         
+        Args:
+            valueColumn: Column index for values (default 1)
+            returnKeys: If True, return the key values for combobox cells.
+                       If False, return the display text.
+        
         Returns:
-            Dict mapping row names (column 0) to values (column 1)
+            Dict mapping row names (column 0) to values (column 1).
+            For combobox cells, returns the key (e.g., -1, 0, 1) if returnKeys=True.
         """
         result = {}
         if len(self.model.columnKeys) < 2:
@@ -429,8 +494,17 @@ class TableViewHandler(QObject):
         nameKey = self.model.columnKeys[0]
         valueKey = self.model.columnKeys[1]
         
-        for row in self.model.rows:
+        for rowIdx, row in enumerate(self.model.rows):
             name = row.get(nameKey, "")
+            
+            # Check if this cell has a key value stored
+            if returnKeys:
+                keyValue = self.model.getKeyValue(rowIdx, valueColumn)
+                if keyValue is not None:
+                    result[name] = keyValue
+                    continue
+            
+            # Fall back to display value
             value = row.get(valueKey, "")
             result[name] = value
         
