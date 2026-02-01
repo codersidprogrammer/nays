@@ -741,6 +741,107 @@ class TableViewHandler(QObject):
         
         return result
     
+    def updateValuesFromSaved(
+        self, 
+        savedData: List[Dict[str, Any]], 
+        nameField: str = "name",
+        valueField: str = "value",
+        valueColumn: int = 1
+    ):
+        """
+        Update table values from saved data (e.g., from SQL persistence).
+        This preserves the structure (cell types, combo items, descriptions) from YAML config
+        and only updates the values.
+        
+        Args:
+            savedData: List of dicts with name-value pairs, e.g.:
+                       [{'name': 'IRAD', 'value': '1'}, {'name': 'IDIFF', 'value': '0'}]
+            nameField: Key for the name field in savedData (default 'name')
+            valueField: Key for the value field in savedData (default 'value')
+            valueColumn: Column index for values (default 1)
+        
+        Note:
+            - For combobox cells: value should be the key (e.g., -1, 0, 1), not the index
+            - For checkbox cells: value should be True/False, 1/0, or '1'/'0'
+            - For text cells: value is used directly
+        
+        Example workflow:
+            # 1. Load structure from YAML
+            handler.loadFromYamlConfig(yaml_config)
+            
+            # 2. Load saved values from SQL
+            saved = [{'name': 'IRAD', 'value': 1}, {'name': 'IDIFF', 'value': -1}]
+            handler.updateValuesFromSaved(saved)
+        """
+        if len(self.model.columnKeys) < 2:
+            return
+        
+        nameKey = self.model.columnKeys[0]
+        valueKey = self.model.columnKeys[1]
+        
+        # Build lookup: name -> row index
+        nameToRow = {}
+        for rowIdx, row in enumerate(self.model.rows):
+            name = row.get(nameKey, "")
+            if name:
+                nameToRow[name] = rowIdx
+        
+        # Update values
+        for item in savedData:
+            name = item.get(nameField)
+            value = item.get(valueField)
+            
+            if name not in nameToRow:
+                continue
+            
+            rowIdx = nameToRow[name]
+            cellType = self.model.getCellType(rowIdx, valueColumn)
+            
+            if cellType == "combobox":
+                # Value is the key, need to convert to display text
+                # Try to parse as int if it's a string
+                try:
+                    keyValue = int(value) if isinstance(value, str) else value
+                except (ValueError, TypeError):
+                    keyValue = value
+                
+                # Get the key-to-display mapping
+                keyToDisplay = self.model.cellKeyToDisplay.get((rowIdx, valueColumn), {})
+                
+                if keyValue in keyToDisplay:
+                    displayText = keyToDisplay[keyValue]
+                    self.model.rows[rowIdx][valueKey] = displayText
+                    self.model.setKeyValue(rowIdx, valueColumn, keyValue)
+                else:
+                    # Key not found in mapping, store as-is
+                    self.model.rows[rowIdx][valueKey] = str(keyValue)
+                    self.model.setKeyValue(rowIdx, valueColumn, keyValue)
+                    
+            elif cellType == "checkbox":
+                # Convert to boolean
+                if isinstance(value, bool):
+                    boolValue = value
+                elif isinstance(value, (int, float)):
+                    boolValue = bool(value)
+                elif isinstance(value, str):
+                    boolValue = value.lower() in ('true', '1', 'yes', 'on')
+                else:
+                    boolValue = bool(value)
+                
+                self.model.rows[rowIdx][valueKey] = boolValue
+                
+            else:
+                # Text cell - use value directly
+                self.model.rows[rowIdx][valueKey] = value
+        
+        # Notify that data changed
+        if self.model.rows:
+            topLeft = self.model.index(0, 0)
+            bottomRight = self.model.index(len(self.model.rows) - 1, self.model.columnCount() - 1)
+            self.model.dataChanged.emit(topLeft, bottomRight)
+        
+        self.tableView.resizeColumnsToContents()
+
     # ===== Data Operations =====
     
     def loadData(self, data: List[Dict[str, Any]]):
