@@ -251,7 +251,7 @@ class TableViewModel(QAbstractTableModel):
         return None
     
     # ===== Row Operations =====
-    def addRow(self, rowData: Dict[str, Any] = None):
+    def addRow(self, rowData: Dict[str, Any] = None, shouldEmit: bool = True):
         """Add a new row to the table."""
         if rowData is None:
             rowData = {key: "" for key in self.columnKeys}
@@ -259,7 +259,8 @@ class TableViewModel(QAbstractTableModel):
         self.beginInsertRows(QModelIndex(), len(self.rows), len(self.rows))
         self.rows.append(rowData)
         self.endInsertRows()
-        self.dataModified.emit()
+        if shouldEmit:
+            self.dataModified.emit()
     
     def deleteRow(self, row: int):
         """Delete a row from the table."""
@@ -1056,7 +1057,7 @@ class TableViewHandler(QObject):
         """
         self.model.clearRows()
         for rowData in data:
-            self.model.addRow(rowData)
+            self.model.addRow(rowData, shouldEmit=shouldEmit)
         
         # Emit signal if requested and there's data
         if shouldEmit and self.model.rows:
