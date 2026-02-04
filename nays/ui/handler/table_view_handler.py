@@ -1046,16 +1046,35 @@ class TableViewHandler(QObject):
 
     # ===== Data Operations =====
     
-    def loadData(self, data: List[Dict[str, Any]]):
-        """Load data into the table."""
+    def loadData(self, data: List[Dict[str, Any]], shouldEmit: bool = True):
+        """Load data into the table.
+        
+        Args:
+            data: List of row dictionaries to load
+            shouldEmit: If True, emit dataChanged signal after loading (default True).
+                       Set to False to prevent triggering callbacks during load.
+        """
         self.model.clearRows()
         for rowData in data:
             self.model.addRow(rowData)
+        
+        # Emit signal if requested and there's data
+        if shouldEmit and self.model.rows:
+            topLeft = self.model.index(0, 0)
+            bottomRight = self.model.index(len(self.model.rows) - 1, self.model.columnCount() - 1)
+            self.model.dataChanged.emit(topLeft, bottomRight)
     
-    def addRow(self, rowData: Dict[str, Any] = None):
-        """Add a new row."""
+    def addRow(self, rowData: Dict[str, Any] = None, shouldEmit: bool = True):
+        """Add a new row.
+        
+        Args:
+            rowData: Dictionary with row data
+            shouldEmit: If True, emit signals after adding (default True).
+                       Set to False to prevent triggering callbacks.
+        """
         self.model.addRow(rowData)
-        self.rowCountChanged.emit(self.model.rowCount())
+        if shouldEmit:
+            self.rowCountChanged.emit(self.model.rowCount())
     
     def deleteRow(self, row: int):
         """Delete a specific row."""
@@ -1082,15 +1101,23 @@ class TableViewHandler(QObject):
             return self.model.rows[row].copy()
         return {}
     
-    def setRowData(self, row: int, data: Dict[str, Any]):
-        """Set data for a specific row."""
+    def setRowData(self, row: int, data: Dict[str, Any], shouldEmit: bool = True):
+        """Set data for a specific row.
+        
+        Args:
+            row: Row index
+            data: Dictionary with row data to update
+            shouldEmit: If True, emit dataChanged signal after update (default True).
+                       Set to False to prevent triggering callbacks.
+        """
         if 0 <= row < len(self.model.rows):
             self.model.rows[row].update(data)
-            # Emit data changed for entire row
-            topLeft = self.model.index(row, 0)
-            bottomRight = self.model.index(row, self.model.columnCount() - 1)
-            self.model.dataChanged.emit(topLeft, bottomRight)
-            self.model.dataModified.emit()
+            # Emit data changed for entire row if requested
+            if shouldEmit:
+                topLeft = self.model.index(row, 0)
+                bottomRight = self.model.index(row, self.model.columnCount() - 1)
+                self.model.dataChanged.emit(topLeft, bottomRight)
+                self.model.dataModified.emit()
     
     def getCellValue(self, row: int, column: int) -> Any:
         """Get value from a specific cell."""
