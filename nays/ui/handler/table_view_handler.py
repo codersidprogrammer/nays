@@ -638,15 +638,60 @@ class TableViewHandler(QObject):
         # Update table view headers
         self.headers = headers
         
+        # Parse config and store column-level metadata (always, regardless of addDefaultRow)
+        for colIdx, item in enumerate(config):
+            itemType = item.get("type", "editable")
+            items = item.get("items", [])
+            
+            # Determine cell type
+            if itemType == "combobox":
+                cellType = "combobox"
+            elif itemType == "checkbox":
+                cellType = "checkbox"
+            else:
+                cellType = "text"
+            
+            # Store cell type at column level
+            self.model.cellTypes[colIdx] = cellType
+            
+            # Parse and store combo items for combobox type
+            if cellType == "combobox" and items:
+                comboItems = []
+                keyToDisplay = {}
+                displayToKey = {}
+                itemsList = []
+                
+                for itemDict in items:
+                    for key, val in itemDict.items():
+                        keyInt = int(key)
+                        itemsList.append((keyInt, val))
+                        
+                        # Format based on display mode
+                        if comboDisplayMode == "key":
+                            displayText = str(key)
+                        elif comboDisplayMode == "both":
+                            displayText = f"{key}: {val}"
+                        else:  # "value"
+                            displayText = val
+                        
+                        comboItems.append(displayText)
+                        keyToDisplay[keyInt] = displayText
+                        displayToKey[displayText] = keyInt
+                
+                # Store mappings at column level (persists across clearRows)
+                self.model.columnComboItems[colIdx] = comboItems
+                self.model.columnKeyToDisplay[colIdx] = keyToDisplay
+                self.model.columnDisplayToKey[colIdx] = displayToKey
+        
         # Prepare default row data if needed
         if addDefaultRow:
             defaultRow = {}
             
             for colIdx, item in enumerate(config):
                 name = item.get("name", f"Column {colIdx}")
+                key = item.get("key", name)
                 itemType = item.get("type", "editable")
                 defaultValueIndex = item.get("defaultValueIndex", "")
-                items = item.get("items", [])
                 
                 # Determine cell type
                 if itemType == "combobox":
@@ -656,29 +701,15 @@ class TableViewHandler(QObject):
                 else:
                     cellType = "text"
                 
-                # Parse combo items for combobox type
-                if cellType == "combobox" and items:
-                    comboItems = []
-                    keyToDisplay = {}
-                    displayToKey = {}
-                    itemsList = []
+                # Get default value based on type
+                if cellType == "combobox" and colIdx in self.model.columnComboItems:
+                    # Use already parsed combo items
+                    comboItems = self.model.columnComboItems[colIdx]
+                    keyToDisplay = self.model.columnKeyToDisplay[colIdx]
+                    displayToKey = self.model.columnDisplayToKey[colIdx]
                     
-                    for itemDict in items:
-                        for key, val in itemDict.items():
-                            keyInt = int(key)
-                            itemsList.append((keyInt, val))
-                            
-                            # Format based on display mode
-                            if comboDisplayMode == "key":
-                                displayText = str(key)
-                            elif comboDisplayMode == "both":
-                                displayText = f"{key}: {val}"
-                            else:  # "value"
-                                displayText = val
-                            
-                            comboItems.append(displayText)
-                            keyToDisplay[keyInt] = displayText
-                            displayToKey[displayText] = keyInt
+                    # Reconstruct itemsList from keyToDisplay
+                    itemsList = sorted([(k, v) for k, v in keyToDisplay.items()])
                     
                     # Get default value
                     if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
@@ -688,19 +719,12 @@ class TableViewHandler(QObject):
                     else:
                         defaultRow[key] = comboItems[0] if comboItems else ""
                     
-                    # Store column metadata for future rows
-                    self.model.cellTypes[colIdx] = cellType
-                    # Store mappings at column level (persists across clearRows)
-                    self.model.columnComboItems[colIdx] = comboItems
-                    self.model.columnKeyToDisplay[colIdx] = keyToDisplay
-                    self.model.columnDisplayToKey[colIdx] = displayToKey
-                    # Also store for row 0 if adding default row
-                    if addDefaultRow:
-                        self.model.cellComboItems[(0, colIdx)] = comboItems
-                        self.model.cellKeyToDisplay[(0, colIdx)] = keyToDisplay
-                        self.model.cellDisplayToKey[(0, colIdx)] = displayToKey
-                        if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
-                            self.model.cellKeyValues[(0, colIdx)] = itemsList[defaultValueIndex][0]
+                    # Store for row 0
+                    self.model.cellComboItems[(0, colIdx)] = comboItems
+                    self.model.cellKeyToDisplay[(0, colIdx)] = keyToDisplay
+                    self.model.cellDisplayToKey[(0, colIdx)] = displayToKey
+                    if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
+                        self.model.cellKeyValues[(0, colIdx)] = itemsList[defaultValueIndex][0]
                         
                 elif cellType == "checkbox":
                     # Handle checkbox default
@@ -710,11 +734,9 @@ class TableViewHandler(QObject):
                         defaultRow[key] = bool(defaultValueIndex)
                     else:
                         defaultRow[key] = False
-                    self.model.cellTypes[colIdx] = cellType
                 else:
                     # Text/editable
                     defaultRow[key] = defaultValueIndex
-                    self.model.cellTypes[colIdx] = cellType
             
             # Add the default row
             self.model.addRow(defaultRow)
