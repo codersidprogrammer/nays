@@ -861,19 +861,12 @@ class TableViewHandler(QObject):
                         actualKeyValue = itemsList[defaultValueIndex][0]
                         displayValue = itemsList[defaultValueIndex][1]
                         rowData["Value"] = displayValue
-                        
-                        # Store cell metadata for this specific cell
-                        self.model.cellComboItems[(rowIdx, 1)] = self.model.rowComboItems[rowIdx]
-                        self.model.cellKeyToDisplay[(rowIdx, 1)] = self.model.rowKeyToDisplay[rowIdx]
-                        self.model.cellDisplayToKey[(rowIdx, 1)] = self.model.rowDisplayToKey[rowIdx]
-                        self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
-                        self.model.cellKeyValues[(rowIdx, 1)] = actualKeyValue
                     else:
                         rowData["Value"] = self.model.rowComboItems[rowIdx][0] if self.model.rowComboItems[rowIdx] else ""
-                        self.model.cellComboItems[(rowIdx, 1)] = self.model.rowComboItems[rowIdx]
-                        self.model.cellKeyToDisplay[(rowIdx, 1)] = self.model.rowKeyToDisplay[rowIdx]
-                        self.model.cellDisplayToKey[(rowIdx, 1)] = self.model.rowDisplayToKey[rowIdx]
-                        self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
+                        if itemsList:
+                            actualKeyValue = itemsList[0][0]
+                        else:
+                            actualKeyValue = None
                 elif cellType == "checkbox":
                     if isinstance(defaultValueIndex, bool):
                         rowData["Value"] = defaultValueIndex
@@ -881,14 +874,25 @@ class TableViewHandler(QObject):
                         rowData["Value"] = bool(defaultValueIndex)
                     else:
                         rowData["Value"] = False
-                    
-                    self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
-                    if rowIdx in self.model.rowCheckboxLabels:
-                        self.model.cellCheckboxLabels[(rowIdx, 1)] = self.model.rowCheckboxLabels[rowIdx]
                 else:
                     rowData["Value"] = defaultValueIndex
             
+            # Add row first
             self.model.addRow(rowData, shouldEmit=False)
+            
+            # Then apply cell metadata if we added a default column
+            if addDefaultColumn:
+                if cellType == "combobox" and rowIdx in self.model.rowComboItems:
+                    self.model.cellComboItems[(rowIdx, 1)] = self.model.rowComboItems[rowIdx]
+                    self.model.cellKeyToDisplay[(rowIdx, 1)] = self.model.rowKeyToDisplay[rowIdx]
+                    self.model.cellDisplayToKey[(rowIdx, 1)] = self.model.rowDisplayToKey[rowIdx]
+                    self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
+                    if 'actualKeyValue' in locals() and actualKeyValue is not None:
+                        self.model.cellKeyValues[(rowIdx, 1)] = actualKeyValue
+                elif cellType == "checkbox":
+                    self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
+                    if rowIdx in self.model.rowCheckboxLabels:
+                        self.model.cellCheckboxLabels[(rowIdx, 1)] = self.model.rowCheckboxLabels[rowIdx]
         
         self.tableView.resizeColumnsToContents()
         self.rowCountChanged.emit(self.model.rowCount())
@@ -1252,13 +1256,15 @@ class TableViewHandler(QObject):
             handler.adjustColumnsToCount(2, config)  # Removes 3 columns
         """
         # Current count excludes the first header column
-        currentCount = len(self.model.columnKeys) - 1
+        currentCount = max(0, len(self.model.columnKeys) - 1)
         
         if currentCount < targetCount:
             # Add columns
             columnsToAdd = targetCount - currentCount
             for i in range(columnsToAdd):
-                columnHeader = f"Column {currentCount + i + 1}"
+                # Use current count at time of addition to avoid duplication
+                actualCurrentCount = len(self.model.columnKeys) - 1
+                columnHeader = f"Column {actualCurrentCount + 1}"
                 self.addColumnForRowConfig(config, columnHeader, comboDisplayMode, shouldEmit=False)
             
             # Emit signals once at the end if needed
