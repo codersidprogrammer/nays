@@ -114,6 +114,12 @@ class TableViewModel(QAbstractTableModel):
         self.cellTypes: Dict[int, str] = {}  # column -> type mapping (for column-based)
         self.columnKeys: List[str] = []  # Maps columns to dict keys
         
+        # Column-level configuration (persists across clearRows)
+        self.columnComboItems: Dict[int, List[str]] = {}  # col -> list of display items
+        self.columnKeyToDisplay: Dict[int, Dict[Any, str]] = {}  # col -> {key: display_text}
+        self.columnDisplayToKey: Dict[int, Dict[str, Any]] = {}  # col -> {display_text: key}
+        self.columnCheckboxLabels: Dict[int, Tuple[str, str]] = {}  # col -> (checked, unchecked)
+        
         # Per-cell type configuration: (row, col) -> type
         self.cellTypeOverrides: Dict[Tuple[int, int], str] = {}
         # Per-cell combo items: (row, col) -> list of display items
@@ -684,12 +690,17 @@ class TableViewHandler(QObject):
                     
                     # Store column metadata for future rows
                     self.model.cellTypes[colIdx] = cellType
-                    # Store mappings for this column (will apply to row 0)
-                    self.model.cellComboItems[(0, colIdx)] = comboItems
-                    self.model.cellKeyToDisplay[(0, colIdx)] = keyToDisplay
-                    self.model.cellDisplayToKey[(0, colIdx)] = displayToKey
-                    if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
-                        self.model.cellKeyValues[(0, colIdx)] = itemsList[defaultValueIndex][0]
+                    # Store mappings at column level (persists across clearRows)
+                    self.model.columnComboItems[colIdx] = comboItems
+                    self.model.columnKeyToDisplay[colIdx] = keyToDisplay
+                    self.model.columnDisplayToKey[colIdx] = displayToKey
+                    # Also store for row 0 if adding default row
+                    if addDefaultRow:
+                        self.model.cellComboItems[(0, colIdx)] = comboItems
+                        self.model.cellKeyToDisplay[(0, colIdx)] = keyToDisplay
+                        self.model.cellDisplayToKey[(0, colIdx)] = displayToKey
+                        if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
+                            self.model.cellKeyValues[(0, colIdx)] = itemsList[defaultValueIndex][0]
                         
                 elif cellType == "checkbox":
                     # Handle checkbox default
@@ -894,7 +905,11 @@ class TableViewHandler(QObject):
                 else:
                     rowData[key] = comboItems[0] if comboItems else ""
                 
-                # Store cell metadata
+                # Store cell metadata at column level
+                self.model.columnComboItems[colIdx] = comboItems
+                self.model.columnKeyToDisplay[colIdx] = keyToDisplay
+                self.model.columnDisplayToKey[colIdx] = displayToKey
+                # Also store per-cell metadata for this row
                 self.model.cellComboItems[(rowIdx, colIdx)] = comboItems
                 self.model.cellKeyToDisplay[(rowIdx, colIdx)] = keyToDisplay
                 self.model.cellDisplayToKey[(rowIdx, colIdx)] = displayToKey
@@ -1083,13 +1098,13 @@ class TableViewHandler(QObject):
                 cellType = self.model.cellTypes.get(colIdx)
                 
                 if cellType == "combobox":
-                    # Copy combo metadata from row 0 if it exists
-                    if (0, colIdx) in self.model.cellComboItems:
-                        self.model.cellComboItems[(rowIdx, colIdx)] = self.model.cellComboItems[(0, colIdx)]
-                    if (0, colIdx) in self.model.cellKeyToDisplay:
-                        self.model.cellKeyToDisplay[(rowIdx, colIdx)] = self.model.cellKeyToDisplay[(0, colIdx)]
-                    if (0, colIdx) in self.model.cellDisplayToKey:
-                        self.model.cellDisplayToKey[(rowIdx, colIdx)] = self.model.cellDisplayToKey[(0, colIdx)]
+                    # Copy combo metadata from column configuration
+                    if colIdx in self.model.columnComboItems:
+                        self.model.cellComboItems[(rowIdx, colIdx)] = self.model.columnComboItems[colIdx]
+                    if colIdx in self.model.columnKeyToDisplay:
+                        self.model.cellKeyToDisplay[(rowIdx, colIdx)] = self.model.columnKeyToDisplay[colIdx]
+                    if colIdx in self.model.columnDisplayToKey:
+                        self.model.cellDisplayToKey[(rowIdx, colIdx)] = self.model.columnDisplayToKey[colIdx]
                     
                     # Set cell type override
                     self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
@@ -1122,9 +1137,9 @@ class TableViewHandler(QObject):
                     # Set cell type override for checkbox
                     self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
                     
-                    # Copy checkbox labels if they exist
-                    if (0, colIdx) in self.model.cellCheckboxLabels:
-                        self.model.cellCheckboxLabels[(rowIdx, colIdx)] = self.model.cellCheckboxLabels[(0, colIdx)]
+                    # Copy checkbox labels from column configuration
+                    if colIdx in self.model.columnCheckboxLabels:
+                        self.model.cellCheckboxLabels[(rowIdx, colIdx)] = self.model.columnCheckboxLabels[colIdx]
         
         # Always emit Qt's dataChanged signal to refresh the view
         if self.model.rows:
