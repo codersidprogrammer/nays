@@ -262,7 +262,7 @@ class TableViewModel(QAbstractTableModel):
         if shouldEmit:
             self.dataModified.emit()
     
-    def deleteRow(self, row: int):
+    def deleteRow(self, row: int, shouldEmit: bool = True):
         """Delete a row from the table."""
         if row < 0 or row >= len(self.rows):
             return
@@ -291,9 +291,10 @@ class TableViewModel(QAbstractTableModel):
         for k in keysToRemove:
             del self.cellCheckboxLabels[k]
         
-        self.dataModified.emit()
+        if shouldEmit:
+            self.dataModified.emit()
     
-    def insertRow(self, row: int, rowData: Dict[str, Any] = None):
+    def insertRow(self, row: int, rowData: Dict[str, Any] = None, shouldEmit: bool = True):
         """Insert a row at a specific position."""
         if rowData is None:
             rowData = {key: "" for key in self.columnKeys}
@@ -301,9 +302,10 @@ class TableViewModel(QAbstractTableModel):
         self.beginInsertRows(QModelIndex(), row, row)
         self.rows.insert(row, rowData)
         self.endInsertRows()
-        self.dataModified.emit()
+        if shouldEmit:
+            self.dataModified.emit()
     
-    def clearRows(self):
+    def clearRows(self, shouldEmit: bool = True):
         """Clear all rows."""
         if len(self.rows) > 0:
             self.beginRemoveRows(QModelIndex(), 0, len(self.rows) - 1)
@@ -315,7 +317,8 @@ class TableViewModel(QAbstractTableModel):
             self.cellKeyValues.clear()
             self.cellCheckboxLabels.clear()
             self.endRemoveRows()
-            self.dataModified.emit()
+            if shouldEmit:
+                self.dataModified.emit()
 
 
 # ---------------------------------
@@ -1077,20 +1080,41 @@ class TableViewHandler(QObject):
         if shouldEmit:
             self.rowCountChanged.emit(self.model.rowCount())
     
-    def deleteRow(self, row: int):
-        """Delete a specific row."""
-        self.model.deleteRow(row)
-        self.rowCountChanged.emit(self.model.rowCount())
+    def deleteRow(self, row: int, shouldEmit: bool = True):
+        """Delete a specific row.
+        
+        Args:
+            row: Row index to delete
+            shouldEmit: If True, emit signals after deletion (default True).
+                       Set to False to prevent triggering callbacks.
+        """
+        self.model.deleteRow(row, shouldEmit=shouldEmit)
+        if shouldEmit:
+            self.rowCountChanged.emit(self.model.rowCount())
     
-    def insertRow(self, row: int, rowData: Dict[str, Any] = None):
-        """Insert a row at a specific position."""
-        self.model.insertRow(row, rowData)
-        self.rowCountChanged.emit(self.model.rowCount())
+    def insertRow(self, row: int, rowData: Dict[str, Any] = None, shouldEmit: bool = True):
+        """Insert a row at a specific position.
+        
+        Args:
+            row: Row index to insert at
+            rowData: Dictionary with row data
+            shouldEmit: If True, emit signals after insertion (default True).
+                       Set to False to prevent triggering callbacks.
+        """
+        self.model.insertRow(row, rowData, shouldEmit=shouldEmit)
+        if shouldEmit:
+            self.rowCountChanged.emit(self.model.rowCount())
     
-    def clearAll(self):
-        """Clear all rows."""
-        self.model.clearRows()
-        self.rowCountChanged.emit(0)
+    def clearAll(self, shouldEmit: bool = True):
+        """Clear all rows.
+        
+        Args:
+            shouldEmit: If True, emit signals after clearing (default True).
+                       Set to False to prevent triggering callbacks.
+        """
+        self.model.clearRows(shouldEmit=shouldEmit)
+        if shouldEmit:
+            self.rowCountChanged.emit(0)
     
     def getData(self) -> List[Dict[str, Any]]:
         """Get all data from the table."""
