@@ -1337,18 +1337,36 @@ class TableViewHandler(QObject):
             - For checkbox cells: values should be True/False or 1/0
         """
         # Remove all data columns (keep first header column)
-        while len(self.model.columnKeys) > 1:
+        # Safely remove columns one by one from the end
+        while len(self.model.columnKeys) > 1 and len(self.model.headers) > 1 and len(self.headers) > 1:
             lastColIdx = len(self.model.columnKeys) - 1
-            lastColKey = self.model.columnKeys[lastColIdx]
             
-            self.model.headers.pop(lastColIdx)
-            self.model.columnKeys.pop(lastColIdx)
-            self.headers.pop(lastColIdx)
+            # Safely get the last column key
+            if lastColIdx < len(self.model.columnKeys):
+                lastColKey = self.model.columnKeys[lastColIdx]
+            else:
+                break
+            
+            # Remove from all three lists
+            if lastColIdx < len(self.model.headers):
+                self.model.headers.pop(lastColIdx)
+            if lastColIdx < len(self.model.columnKeys):
+                self.model.columnKeys.pop(lastColIdx)
+            if lastColIdx < len(self.headers):
+                self.headers.pop(lastColIdx)
             
             # Remove column data from all rows
             for row in self.model.rows:
                 if lastColKey in row:
                     del row[lastColKey]
+        
+        # If data is empty, just return after cleanup
+        if not data:
+            self.model.layoutChanged.emit()
+            if shouldEmit:
+                self.dataChanged.emit(self.getData())
+            self.tableView.resizeColumnsToContents()
+            return
         
         # Add columns for each data entry
         for colDataIdx, columnData in enumerate(data):
