@@ -599,9 +599,9 @@ class TableViewHandler(QObject):
         
         Example:
             config = [
-                {'name': 'Segment Name', 'type': 'editable', 'defaultValueIndex': 'New Segment'},
-                {'name': 'Length', 'type': 'editable', 'defaultValueIndex': 0},
-                {'name': 'Material', 'type': 'combobox', 'defaultValueIndex': 0, 'items': [{0: "Steel"}, {1: "Concrete"}]}
+                {'name': 'Segment Name', 'key': 'segmentName', 'type': 'editable', 'defaultValueIndex': 'New Segment'},
+                {'name': 'Length', 'key': 'length', 'type': 'editable', 'defaultValueIndex': 0},
+                {'name': 'Material', 'key': 'material', 'type': 'combobox', 'defaultValueIndex': 0, 'items': [{0: "Steel"}, {1: "Concrete"}]}
             ]
             handler.loadFromConfigAsColumns(config)
             # Results in table:
@@ -609,17 +609,25 @@ class TableViewHandler(QObject):
             # | New Segment  | 0      | Steel    |
         
         Args:
-            config: List of config dictionaries defining columns
+            config: List of config dictionaries defining columns. Each item can have:
+                - name: Display name for the column header
+                - key: (optional) Data key for accessing row data. If not provided, uses 'name'
+                - type: 'editable', 'combobox', or 'checkbox'
+                - defaultValueIndex: Default value for new rows
+                - items: For combobox type, list of {key: value} dicts
             addDefaultRow: If True, adds a row with default values
             comboDisplayMode: How to display combo items ("value", "key", or "both")
         """
         self.enableMultiTypeCells()
         self.model.clearRows()
         
-        # Extract column headers from config
+        # Extract column headers and keys from config
         headers = [item.get("name", f"Column {i}") for i, item in enumerate(config)]
+        # Use 'key' field if provided, otherwise fall back to 'name'
+        columnKeys = [item.get("key", item.get("name", f"Column {i}")) for i, item in enumerate(config)]
+        
         self.model.headers = headers
-        self.model.columnKeys = headers
+        self.model.columnKeys = columnKeys
         
         # Update table view headers
         self.headers = headers
@@ -670,9 +678,9 @@ class TableViewHandler(QObject):
                     if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
                         actualKeyValue = itemsList[defaultValueIndex][0]
                         displayValue = keyToDisplay.get(actualKeyValue, str(actualKeyValue))
-                        defaultRow[name] = displayValue
+                        defaultRow[key] = displayValue
                     else:
-                        defaultRow[name] = comboItems[0] if comboItems else ""
+                        defaultRow[key] = comboItems[0] if comboItems else ""
                     
                     # Store column metadata for future rows
                     self.model.cellTypes[colIdx] = cellType
@@ -686,15 +694,15 @@ class TableViewHandler(QObject):
                 elif cellType == "checkbox":
                     # Handle checkbox default
                     if isinstance(defaultValueIndex, bool):
-                        defaultRow[name] = defaultValueIndex
+                        defaultRow[key] = defaultValueIndex
                     elif isinstance(defaultValueIndex, (int, float)):
-                        defaultRow[name] = bool(defaultValueIndex)
+                        defaultRow[key] = bool(defaultValueIndex)
                     else:
-                        defaultRow[name] = False
+                        defaultRow[key] = False
                     self.model.cellTypes[colIdx] = cellType
                 else:
                     # Text/editable
-                    defaultRow[name] = defaultValueIndex
+                    defaultRow[key] = defaultValueIndex
                     self.model.cellTypes[colIdx] = cellType
             
             # Add the default row
@@ -842,6 +850,7 @@ class TableViewHandler(QObject):
         
         for colIdx, item in enumerate(config):
             name = item.get("name", f"Column {colIdx}")
+            key = item.get("key", name)  # Use key for data access
             itemType = item.get("type", "editable")
             defaultValueIndex = item.get("defaultValueIndex", "")
             items = item.get("items", [])
@@ -881,9 +890,9 @@ class TableViewHandler(QObject):
                 if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
                     actualKeyValue = itemsList[defaultValueIndex][0]
                     displayValue = keyToDisplay.get(actualKeyValue, str(actualKeyValue))
-                    rowData[name] = displayValue
+                    rowData[key] = displayValue
                 else:
-                    rowData[name] = comboItems[0] if comboItems else ""
+                    rowData[key] = comboItems[0] if comboItems else ""
                 
                 # Store cell metadata
                 self.model.cellComboItems[(rowIdx, colIdx)] = comboItems
@@ -894,14 +903,14 @@ class TableViewHandler(QObject):
                     self.model.cellKeyValues[(rowIdx, colIdx)] = itemsList[defaultValueIndex][0]
             elif cellType == "checkbox":
                 if isinstance(defaultValueIndex, bool):
-                    rowData[name] = defaultValueIndex
+                    rowData[key] = defaultValueIndex
                 elif isinstance(defaultValueIndex, (int, float)):
-                    rowData[name] = bool(defaultValueIndex)
+                    rowData[key] = bool(defaultValueIndex)
                 else:
-                    rowData[name] = False
+                    rowData[key] = False
                 self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
             else:
-                rowData[name] = defaultValueIndex
+                rowData[key] = defaultValueIndex
         
         # Add the row
         self.model.addRow(rowData)
