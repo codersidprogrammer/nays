@@ -868,7 +868,7 @@ class TableViewHandler(QObject):
         self.tableView.resizeColumnsToContents()
         self.rowCountChanged.emit(self.model.rowCount())
     
-    def addRowForColumnConfig(self, config: List[Dict[str, Any]], comboDisplayMode: str = "value"):
+    def addRowForColumnConfig(self, config: List[Dict[str, Any]], comboDisplayMode: str = "value", shouldEmit: bool = True):
         """
         Add a new row based on column config (used after loadFromConfigAsColumns).
         
@@ -877,6 +877,8 @@ class TableViewHandler(QObject):
         Args:
             config: Same config list used in loadFromConfigAsColumns
             comboDisplayMode: How to display combo items ("value", "key", or "both")
+            shouldEmit: If True, emit signals after adding (default True).
+                       Set to False to prevent triggering callbacks.
         """
         rowIdx = len(self.model.rows)
         rowData = {}
@@ -950,8 +952,9 @@ class TableViewHandler(QObject):
                 rowData[key] = defaultValueIndex
         
         # Add the row
-        self.model.addRow(rowData)
-        self.rowCountChanged.emit(self.model.rowCount())
+        self.model.addRow(rowData, shouldEmit=shouldEmit)
+        if shouldEmit:
+            self.rowCountChanged.emit(self.model.rowCount())
     
     def getConfigValues(self, valueColumn: int = 1, returnKeys: bool = True) -> Dict[str, Any]:
         """
