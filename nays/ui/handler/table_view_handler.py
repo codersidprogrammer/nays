@@ -1259,10 +1259,8 @@ class TableViewHandler(QObject):
         currentCount = max(0, len(self.model.columnKeys) - 1)
         
         if currentCount < targetCount:
-            # Add columns
-            columnsToAdd = targetCount - currentCount
-            for i in range(columnsToAdd):
-                # Use current count at time of addition to avoid duplication
+            # Add columns one by one
+            while len(self.model.columnKeys) - 1 < targetCount:
                 actualCurrentCount = len(self.model.columnKeys) - 1
                 columnHeader = f"Column {actualCurrentCount + 1}"
                 self.addColumnForRowConfig(config, columnHeader, comboDisplayMode, shouldEmit=False)
