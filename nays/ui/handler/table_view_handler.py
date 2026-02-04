@@ -1058,7 +1058,7 @@ class TableViewHandler(QObject):
             shouldEmit: If True, emit dataChanged signal after loading (default True).
                        Set to False to prevent triggering callbacks during load.
         """
-        self.model.clearRows()
+        self.model.clearRows(shouldEmit)
         for rowData in data:
             self.model.addRow(rowData, shouldEmit=shouldEmit)
         
