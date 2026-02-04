@@ -120,6 +120,12 @@ class TableViewModel(QAbstractTableModel):
         self.columnDisplayToKey: Dict[int, Dict[str, Any]] = {}  # col -> {display_text: key}
         self.columnCheckboxLabels: Dict[int, Tuple[str, str]] = {}  # col -> (checked, unchecked)
         
+        # Row-level configuration (for vertical headers - persists across column operations)
+        self.rowComboItems: Dict[int, List[str]] = {}  # row -> list of display items
+        self.rowKeyToDisplay: Dict[int, Dict[Any, str]] = {}  # row -> {key: display_text}
+        self.rowDisplayToKey: Dict[int, Dict[str, Any]] = {}  # row -> {display_text: key}
+        self.rowCheckboxLabels: Dict[int, Tuple[str, str]] = {}  # row -> (checked, unchecked)
+        
         # Per-cell type configuration: (row, col) -> type
         self.cellTypeOverrides: Dict[Tuple[int, int], str] = {}
         # Per-cell combo items: (row, col) -> list of display items
@@ -744,6 +750,149 @@ class TableViewHandler(QObject):
         self.tableView.resizeColumnsToContents()
         self.rowCountChanged.emit(self.model.rowCount())
     
+    def loadFromConfigAsRows(
+        self,
+        config: List[Dict[str, Any]],
+        addDefaultColumn: bool = True,
+        comboDisplayMode: str = "value"
+    ):
+        """
+        Load config as ROWS with vertical headers. Each config item defines a row.
+        
+        Use this when you want a table where:
+        - Each config item is a ROW (header, type, default value)
+        - Columns represent data entries (e.g., multiple configurations, cases, scenarios)
+        - First column shows row names/headers vertically
+        
+        Example:
+            config = [
+                {'name': 'Parameter Name', 'key': 'paramName', 'type': 'editable', 'defaultValueIndex': 'Value 1'},
+                {'name': 'Status', 'key': 'status', 'type': 'combobox', 'defaultValueIndex': 0, 'items': [{0: "Active"}, {1: "Inactive"}]},
+                {'name': 'Enabled', 'key': 'enabled', 'type': 'checkbox', 'defaultValueIndex': True}
+            ]
+            handler.loadFromConfigAsRows(config)
+            # Results in table:
+            # | Parameter Name | Value 1  |
+            # | Status         | Active   |
+            # | Enabled        | ✓        |
+        
+        Args:
+            config: List of config dictionaries defining rows. Each item can have:
+                - name: Display name for the row header
+                - key: (optional) Data key for accessing column data. If not provided, uses 'name'
+                - type: 'editable', 'combobox', or 'checkbox'
+                - defaultValueIndex: Default value for new columns
+                - items: For combobox type, list of {key: value} dicts
+                - checkedLabel: For checkbox type, label when checked
+                - uncheckedLabel: For checkbox type, label when unchecked
+            addDefaultColumn: If True, adds a default data column
+            comboDisplayMode: How to display combo items ("value", "key", or "both")
+        """
+        self.enableMultiTypeCells()
+        self.model.clearRows()
+        
+        # First column is the row header, rest are data columns
+        if addDefaultColumn:
+            headers = ["Name", "Value"]
+        else:
+            headers = ["Name"]
+        
+        self.model.headers = headers
+        self.model.columnKeys = headers  # Use headers as keys initially
+        self.headers = headers
+        
+        # Parse config and create rows with metadata storage
+        for rowIdx, item in enumerate(config):
+            name = item.get("name", f"Row {rowIdx}")
+            key = item.get("key", name)
+            itemType = item.get("type", "editable")
+            items = item.get("items", [])
+            checkedLabel = item.get("checkedLabel", None)
+            uncheckedLabel = item.get("uncheckedLabel", None)
+            
+            # Determine cell type
+            if itemType == "combobox":
+                cellType = "combobox"
+            elif itemType == "checkbox":
+                cellType = "checkbox"
+            else:
+                cellType = "text"
+            
+            # Store row-level metadata for combobox type
+            if cellType == "combobox" and items:
+                comboItems = []
+                keyToDisplay = {}
+                displayToKey = {}
+                
+                for itemDict in items:
+                    for key, val in itemDict.items():
+                        keyInt = int(key)
+                        
+                        if comboDisplayMode == "key":
+                            displayText = str(keyInt)
+                        elif comboDisplayMode == "both":
+                            displayText = f"{keyInt}: {val}"
+                        else:
+                            displayText = val
+                        
+                        comboItems.append(displayText)
+                        keyToDisplay[keyInt] = displayText
+                        displayToKey[displayText] = keyInt
+                
+                # Store mappings at row level
+                self.model.rowComboItems[rowIdx] = comboItems
+                self.model.rowKeyToDisplay[rowIdx] = keyToDisplay
+                self.model.rowDisplayToKey[rowIdx] = displayToKey
+            
+            # Store checkbox labels at row level
+            if cellType == "checkbox" and (checkedLabel or uncheckedLabel):
+                self.model.rowCheckboxLabels[rowIdx] = (checkedLabel or "", uncheckedLabel or "")
+            
+            # Create row with name in first column
+            rowData = {"Name": name}
+            
+            # Add default value in second column if needed
+            if addDefaultColumn:
+                defaultValueIndex = item.get("defaultValueIndex", "")
+                
+                if cellType == "combobox" and rowIdx in self.model.rowComboItems:
+                    itemsList = list(self.model.rowKeyToDisplay[rowIdx].items())
+                    if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
+                        actualKeyValue = itemsList[defaultValueIndex][0]
+                        displayValue = itemsList[defaultValueIndex][1]
+                        rowData["Value"] = displayValue
+                        
+                        # Store cell metadata for this specific cell
+                        self.model.cellComboItems[(rowIdx, 1)] = self.model.rowComboItems[rowIdx]
+                        self.model.cellKeyToDisplay[(rowIdx, 1)] = self.model.rowKeyToDisplay[rowIdx]
+                        self.model.cellDisplayToKey[(rowIdx, 1)] = self.model.rowDisplayToKey[rowIdx]
+                        self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
+                        self.model.cellKeyValues[(rowIdx, 1)] = actualKeyValue
+                    else:
+                        rowData["Value"] = self.model.rowComboItems[rowIdx][0] if self.model.rowComboItems[rowIdx] else ""
+                        self.model.cellComboItems[(rowIdx, 1)] = self.model.rowComboItems[rowIdx]
+                        self.model.cellKeyToDisplay[(rowIdx, 1)] = self.model.rowKeyToDisplay[rowIdx]
+                        self.model.cellDisplayToKey[(rowIdx, 1)] = self.model.rowDisplayToKey[rowIdx]
+                        self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
+                elif cellType == "checkbox":
+                    if isinstance(defaultValueIndex, bool):
+                        rowData["Value"] = defaultValueIndex
+                    elif isinstance(defaultValueIndex, (int, float)):
+                        rowData["Value"] = bool(defaultValueIndex)
+                    else:
+                        rowData["Value"] = False
+                    
+                    self.model.cellTypeOverrides[(rowIdx, 1)] = cellType
+                    if rowIdx in self.model.rowCheckboxLabels:
+                        self.model.cellCheckboxLabels[(rowIdx, 1)] = self.model.rowCheckboxLabels[rowIdx]
+                else:
+                    rowData["Value"] = defaultValueIndex
+            
+            self.model.addRow(rowData, shouldEmit=False)
+        
+        self.tableView.resizeColumnsToContents()
+        self.rowCountChanged.emit(self.model.rowCount())
+    
     def loadFromYamlConfig(
         self, 
         config: List[Dict[str, Any]], 
@@ -1000,6 +1149,169 @@ class TableViewHandler(QObject):
             # Emit signals once at the end if needed
             if shouldEmit:
                 self.rowCountChanged.emit(self.model.rowCount())
+    
+    def addColumnForRowConfig(self, config: List[Dict[str, Any]], columnHeader: str = None, comboDisplayMode: str = "value", shouldEmit: bool = True):
+        """
+        Add a new column based on row config (used after loadFromConfigAsRows).
+        
+        This applies the same cell types and metadata from the config to the new column.
+        
+        Args:
+            config: Same config list used in loadFromConfigAsRows
+            columnHeader: Header for the new column (e.g., "Config 2", "Case B")
+            comboDisplayMode: How to display combo items ("value", "key", or "both")
+            shouldEmit: If True, emit signals after adding (default True).
+                       Set to False to prevent triggering callbacks.
+        """
+        if columnHeader is None:
+            columnHeader = f"Column {len(self.model.columnKeys)}"
+        
+        # Add column header
+        colIdx = len(self.model.headers)
+        self.model.headers.append(columnHeader)
+        self.model.columnKeys.append(columnHeader)
+        self.headers.append(columnHeader)
+        
+        # Update each row with default value for this column
+        for rowIdx, item in enumerate(config):
+            if rowIdx >= len(self.model.rows):
+                break
+            
+            itemType = item.get("type", "editable")
+            defaultValueIndex = item.get("defaultValueIndex", "")
+            
+            # Determine cell type
+            if itemType == "combobox":
+                cellType = "combobox"
+            elif itemType == "checkbox":
+                cellType = "checkbox"
+            else:
+                cellType = "text"
+            
+            # Set default value based on type
+            if cellType == "combobox" and rowIdx in self.model.rowComboItems:
+                itemsList = list(self.model.rowKeyToDisplay[rowIdx].items())
+                if isinstance(defaultValueIndex, int) and 0 <= defaultValueIndex < len(itemsList):
+                    actualKeyValue = itemsList[defaultValueIndex][0]
+                    displayValue = itemsList[defaultValueIndex][1]
+                    self.model.rows[rowIdx][columnHeader] = displayValue
+                    
+                    # Store cell metadata for this specific cell
+                    self.model.cellComboItems[(rowIdx, colIdx)] = self.model.rowComboItems[rowIdx]
+                    self.model.cellKeyToDisplay[(rowIdx, colIdx)] = self.model.rowKeyToDisplay[rowIdx]
+                    self.model.cellDisplayToKey[(rowIdx, colIdx)] = self.model.rowDisplayToKey[rowIdx]
+                    self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
+                    self.model.cellKeyValues[(rowIdx, colIdx)] = actualKeyValue
+                else:
+                    self.model.rows[rowIdx][columnHeader] = self.model.rowComboItems[rowIdx][0] if self.model.rowComboItems[rowIdx] else ""
+                    self.model.cellComboItems[(rowIdx, colIdx)] = self.model.rowComboItems[rowIdx]
+                    self.model.cellKeyToDisplay[(rowIdx, colIdx)] = self.model.rowKeyToDisplay[rowIdx]
+                    self.model.cellDisplayToKey[(rowIdx, colIdx)] = self.model.rowDisplayToKey[rowIdx]
+                    self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
+            elif cellType == "checkbox":
+                if isinstance(defaultValueIndex, bool):
+                    self.model.rows[rowIdx][columnHeader] = defaultValueIndex
+                elif isinstance(defaultValueIndex, (int, float)):
+                    self.model.rows[rowIdx][columnHeader] = bool(defaultValueIndex)
+                else:
+                    self.model.rows[rowIdx][columnHeader] = False
+                
+                self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
+                if rowIdx in self.model.rowCheckboxLabels:
+                    self.model.cellCheckboxLabels[(rowIdx, colIdx)] = self.model.rowCheckboxLabels[rowIdx]
+            else:
+                self.model.rows[rowIdx][columnHeader] = defaultValueIndex
+        
+        # Notify model about structure change
+        self.model.layoutChanged.emit()
+        
+        if shouldEmit:
+            self.dataChanged.emit(self.getData())
+        
+        self.tableView.resizeColumnsToContents()
+    
+    def adjustColumnsToCount(self, targetCount: int, config: List[Dict[str, Any]], comboDisplayMode: str = "value", shouldEmit: bool = True):
+        """
+        Adjust the number of columns to match the target count (excluding the first column with row headers).
+        
+        If current column count is less than targetCount, adds columns.
+        If current column count is greater than targetCount, removes columns from the end.
+        
+        Args:
+            targetCount: Desired number of data columns (not counting the first header column)
+            config: Same config list used in loadFromConfigAsRows
+            comboDisplayMode: How to display combo items ("value", "key", or "both")
+            shouldEmit: If True, emit signals after adjusting (default True).
+                       Set to False to prevent triggering callbacks.
+        
+        Example:
+            # Current table has 2 data columns, need 4 data columns
+            handler.adjustColumnsToCount(4, config)  # Adds 2 columns
+            
+            # Current table has 5 data columns, need 2 data columns
+            handler.adjustColumnsToCount(2, config)  # Removes 3 columns
+        """
+        # Current count excludes the first header column
+        currentCount = len(self.model.columnKeys) - 1
+        
+        if currentCount < targetCount:
+            # Add columns
+            columnsToAdd = targetCount - currentCount
+            for i in range(columnsToAdd):
+                columnHeader = f"Column {currentCount + i + 1}"
+                self.addColumnForRowConfig(config, columnHeader, comboDisplayMode, shouldEmit=False)
+            
+            # Emit signals once at the end if needed
+            if shouldEmit:
+                self.dataChanged.emit(self.getData())
+                
+        elif currentCount > targetCount:
+            # Remove columns from the end
+            columnsToRemove = currentCount - targetCount
+            
+            for _ in range(columnsToRemove):
+                # Remove the last column (not the first header column)
+                lastColIdx = len(self.model.columnKeys) - 1
+                lastColKey = self.model.columnKeys[lastColIdx]
+                
+                # Remove column from headers and keys
+                self.model.headers.pop(lastColIdx)
+                self.model.columnKeys.pop(lastColIdx)
+                self.headers.pop(lastColIdx)
+                
+                # Remove column data from all rows
+                for row in self.model.rows:
+                    if lastColKey in row:
+                        del row[lastColKey]
+                
+                # Clean up cell metadata for this column
+                keysToRemove = [k for k in self.model.cellTypeOverrides if k[1] == lastColIdx]
+                for k in keysToRemove:
+                    del self.model.cellTypeOverrides[k]
+                keysToRemove = [k for k in self.model.cellComboItems if k[1] == lastColIdx]
+                for k in keysToRemove:
+                    del self.model.cellComboItems[k]
+                keysToRemove = [k for k in self.model.cellKeyToDisplay if k[1] == lastColIdx]
+                for k in keysToRemove:
+                    del self.model.cellKeyToDisplay[k]
+                keysToRemove = [k for k in self.model.cellDisplayToKey if k[1] == lastColIdx]
+                for k in keysToRemove:
+                    del self.model.cellDisplayToKey[k]
+                keysToRemove = [k for k in self.model.cellKeyValues if k[1] == lastColIdx]
+                for k in keysToRemove:
+                    del self.model.cellKeyValues[k]
+                keysToRemove = [k for k in self.model.cellCheckboxLabels if k[1] == lastColIdx]
+                for k in keysToRemove:
+                    del self.model.cellCheckboxLabels[k]
+            
+            # Notify model about structure change
+            self.model.layoutChanged.emit()
+            
+            # Emit signals once at the end if needed
+            if shouldEmit:
+                self.dataChanged.emit(self.getData())
+        
+        self.tableView.resizeColumnsToContents()
     
     def getConfigValues(self, valueColumn: int = 1, returnKeys: bool = True) -> Dict[str, Any]:
         """
