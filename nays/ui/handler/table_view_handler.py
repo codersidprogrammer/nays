@@ -1062,11 +1062,15 @@ class TableViewHandler(QObject):
         for rowData in data:
             self.model.addRow(rowData, shouldEmit=shouldEmit)
         
-        # Emit signal if requested and there's data
-        if shouldEmit and self.model.rows:
+        # Always emit Qt's dataChanged signal to refresh the view
+        if self.model.rows:
             topLeft = self.model.index(0, 0)
             bottomRight = self.model.index(len(self.model.rows) - 1, self.model.columnCount() - 1)
             self.model.dataChanged.emit(topLeft, bottomRight)
+        
+        # Only emit rowCountChanged if shouldEmit is True
+        if shouldEmit:
+            self.rowCountChanged.emit(self.model.rowCount())
     
     def addRow(self, rowData: Dict[str, Any] = None, shouldEmit: bool = True):
         """Add a new row.
