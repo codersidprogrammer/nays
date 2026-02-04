@@ -1276,14 +1276,26 @@ class TableViewHandler(QObject):
             columnsToRemove = currentCount - targetCount
             
             for _ in range(columnsToRemove):
+                # Safely check if we can remove more columns (keep at least the header column)
+                if len(self.model.columnKeys) <= 1 or len(self.model.headers) <= 1 or len(self.headers) <= 1:
+                    break
+                
                 # Remove the last column (not the first header column)
                 lastColIdx = len(self.model.columnKeys) - 1
-                lastColKey = self.model.columnKeys[lastColIdx]
                 
-                # Remove column from headers and keys
-                self.model.headers.pop(lastColIdx)
-                self.model.columnKeys.pop(lastColIdx)
-                self.headers.pop(lastColIdx)
+                # Safely get the last column key before removing
+                if lastColIdx < len(self.model.columnKeys):
+                    lastColKey = self.model.columnKeys[lastColIdx]
+                else:
+                    break
+                
+                # Remove column from all three lists with boundary checks
+                if lastColIdx < len(self.model.headers):
+                    self.model.headers.pop(lastColIdx)
+                if lastColIdx < len(self.model.columnKeys):
+                    self.model.columnKeys.pop(lastColIdx)
+                if lastColIdx < len(self.headers):
+                    self.headers.pop(lastColIdx)
                 
                 # Remove column data from all rows
                 for row in self.model.rows:
