@@ -1066,10 +1066,65 @@ class TableViewHandler(QObject):
             data: List of row dictionaries to load
             shouldEmit: If True, emit dataChanged signal after loading (default True).
                        Set to False to prevent triggering callbacks during load.
+        
+        Note:
+            This method is compatible with tables configured using loadFromConfigAsColumns.
+            It will automatically copy cell type metadata (combobox items, mappings, etc.)
+            from the column configuration to each loaded row.
         """
         self.model.clearRows(shouldEmit)
-        for rowData in data:
+        
+        for rowIdx, rowData in enumerate(data):
             self.model.addRow(rowData, shouldEmit=shouldEmit)
+            
+            # Copy cell type metadata from column configuration to this row
+            # This ensures combobox and checkbox cells work correctly
+            for colIdx in range(len(self.model.columnKeys)):
+                cellType = self.model.cellTypes.get(colIdx)
+                
+                if cellType == "combobox":
+                    # Copy combo metadata from row 0 if it exists
+                    if (0, colIdx) in self.model.cellComboItems:
+                        self.model.cellComboItems[(rowIdx, colIdx)] = self.model.cellComboItems[(0, colIdx)]
+                    if (0, colIdx) in self.model.cellKeyToDisplay:
+                        self.model.cellKeyToDisplay[(rowIdx, colIdx)] = self.model.cellKeyToDisplay[(0, colIdx)]
+                    if (0, colIdx) in self.model.cellDisplayToKey:
+                        self.model.cellDisplayToKey[(rowIdx, colIdx)] = self.model.cellDisplayToKey[(0, colIdx)]
+                    
+                    # Set cell type override
+                    self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
+                    
+                    # Convert value to display text if it's a key
+                    key = self.model.columnKeys[colIdx]
+                    value = rowData.get(key)
+                    
+                    if value is not None and (rowIdx, colIdx) in self.model.cellDisplayToKey:
+                        displayToKey = self.model.cellDisplayToKey[(rowIdx, colIdx)]
+                        keyToDisplay = self.model.cellKeyToDisplay[(rowIdx, colIdx)]
+                        
+                        # If value is already a display text, keep it
+                        if str(value) not in displayToKey:
+                            # Value might be a key, try to convert to display text
+                            try:
+                                keyValue = int(value) if isinstance(value, str) else value
+                                if keyValue in keyToDisplay:
+                                    self.model.rows[rowIdx][key] = keyToDisplay[keyValue]
+                                    self.model.cellKeyValues[(rowIdx, colIdx)] = keyValue
+                            except (ValueError, TypeError):
+                                pass
+                        else:
+                            # Store the key value
+                            keyValue = displayToKey.get(str(value))
+                            if keyValue is not None:
+                                self.model.cellKeyValues[(rowIdx, colIdx)] = keyValue
+                
+                elif cellType == "checkbox":
+                    # Set cell type override for checkbox
+                    self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
+                    
+                    # Copy checkbox labels if they exist
+                    if (0, colIdx) in self.model.cellCheckboxLabels:
+                        self.model.cellCheckboxLabels[(rowIdx, colIdx)] = self.model.cellCheckboxLabels[(0, colIdx)]
         
         # Always emit Qt's dataChanged signal to refresh the view
         if self.model.rows:
