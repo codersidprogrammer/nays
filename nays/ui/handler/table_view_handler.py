@@ -1313,6 +1313,125 @@ class TableViewHandler(QObject):
         
         self.tableView.resizeColumnsToContents()
     
+    def loadDataAsColumns(self, data: List[Dict[str, Any]], config: List[Dict[str, Any]], comboDisplayMode: str = "value", shouldEmit: bool = True):
+        """
+        Load data as columns for vertical header layout (used after loadFromConfigAsRows).
+        
+        Each dictionary in data represents a column of values.
+        The keys in each dict should match the 'key' fields from the config.
+        
+        Args:
+            data: List of column dictionaries. Each dict contains values for one column.
+                  Example: [
+                      {'param': 'Value1', 'status': 0, 'enabled': True},  # Column 1
+                      {'param': 'Value2', 'status': 1, 'enabled': False}  # Column 2
+                  ]
+            config: Same config list used in loadFromConfigAsRows (to get metadata)
+            comboDisplayMode: How to display combo items ("value", "key", or "both")
+            shouldEmit: If True, emit signals after loading (default True).
+                       Set to False to prevent triggering callbacks during load.
+        
+        Note:
+            - This clears existing data columns (keeps the first header column)
+            - For combobox cells: values should be keys (e.g., 0, 1), not display text
+            - For checkbox cells: values should be True/False or 1/0
+        """
+        # Remove all data columns (keep first header column)
+        while len(self.model.columnKeys) > 1:
+            lastColIdx = len(self.model.columnKeys) - 1
+            lastColKey = self.model.columnKeys[lastColIdx]
+            
+            self.model.headers.pop(lastColIdx)
+            self.model.columnKeys.pop(lastColIdx)
+            self.headers.pop(lastColIdx)
+            
+            # Remove column data from all rows
+            for row in self.model.rows:
+                if lastColKey in row:
+                    del row[lastColKey]
+        
+        # Add columns for each data entry
+        for colDataIdx, columnData in enumerate(data):
+            columnHeader = f"Column {colDataIdx + 1}"
+            colIdx = len(self.model.columnKeys)
+            
+            self.model.headers.append(columnHeader)
+            self.model.columnKeys.append(columnHeader)
+            self.headers.append(columnHeader)
+            
+            # Update each row with values from this column
+            for rowIdx, item in enumerate(config):
+                if rowIdx >= len(self.model.rows):
+                    break
+                
+                key = item.get("key", item.get("name", f"Row {rowIdx}"))
+                itemType = item.get("type", "editable")
+                
+                # Determine cell type
+                if itemType == "combobox":
+                    cellType = "combobox"
+                elif itemType == "checkbox":
+                    cellType = "checkbox"
+                else:
+                    cellType = "text"
+                
+                # Get value from column data
+                value = columnData.get(key, "")
+                
+                # Process value based on cell type
+                if cellType == "combobox" and rowIdx in self.model.rowComboItems:
+                    # value should be the key (e.g., 0, 1), convert to display text
+                    keyToDisplay = self.model.rowKeyToDisplay[rowIdx]
+                    
+                    # Convert value to int if it's a string number
+                    if isinstance(value, str) and value.isdigit():
+                        value = int(value)
+                    elif isinstance(value, str) and value.lstrip('-').isdigit():
+                        value = int(value)
+                    
+                    # Get display text for the key
+                    if value in keyToDisplay:
+                        displayValue = keyToDisplay[value]
+                    else:
+                        # If key not found, use first item as default
+                        displayValue = self.model.rowComboItems[rowIdx][0] if self.model.rowComboItems[rowIdx] else ""
+                        value = list(keyToDisplay.keys())[0] if keyToDisplay else value
+                    
+                    self.model.rows[rowIdx][columnHeader] = displayValue
+                    
+                    # Store cell metadata
+                    self.model.cellComboItems[(rowIdx, colIdx)] = self.model.rowComboItems[rowIdx]
+                    self.model.cellKeyToDisplay[(rowIdx, colIdx)] = self.model.rowKeyToDisplay[rowIdx]
+                    self.model.cellDisplayToKey[(rowIdx, colIdx)] = self.model.rowDisplayToKey[rowIdx]
+                    self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
+                    self.model.cellKeyValues[(rowIdx, colIdx)] = value
+                    
+                elif cellType == "checkbox":
+                    # Convert value to boolean
+                    if isinstance(value, str):
+                        boolValue = value.lower() in ('true', '1', 'yes')
+                    elif isinstance(value, (int, float)):
+                        boolValue = bool(value)
+                    else:
+                        boolValue = bool(value)
+                    
+                    self.model.rows[rowIdx][columnHeader] = boolValue
+                    self.model.cellTypeOverrides[(rowIdx, colIdx)] = cellType
+                    
+                    if rowIdx in self.model.rowCheckboxLabels:
+                        self.model.cellCheckboxLabels[(rowIdx, colIdx)] = self.model.rowCheckboxLabels[rowIdx]
+                else:
+                    # Text/editable
+                    self.model.rows[rowIdx][columnHeader] = value
+        
+        # Notify model about changes
+        self.model.layoutChanged.emit()
+        
+        if shouldEmit:
+            self.dataChanged.emit(self.getData())
+        
+        self.tableView.resizeColumnsToContents()
+    
     def getConfigValues(self, valueColumn: int = 1, returnKeys: bool = True) -> Dict[str, Any]:
         """
         Get values as a dictionary mapping names to values.
@@ -1347,6 +1466,72 @@ class TableViewHandler(QObject):
             # Fall back to display value
             value = row.get(valueKey, "")
             result[name] = value
+        
+        return result
+    
+    def getColumnValues(self, columnIndex: int = 1, returnKeys: bool = True) -> Dict[str, Any]:
+        """
+        Get values from a specific column as a dictionary (for vertical header layout).
+        
+        Args:
+            columnIndex: Column index to extract (default 1, first data column)
+            returnKeys: If True, return the key values for combobox cells.
+                       If False, return the display text.
+        
+        Returns:
+            Dict mapping row keys to values in the specified column.
+            For combobox cells, returns the key (e.g., 0, 1) if returnKeys=True.
+        """
+        result = {}
+        
+        if columnIndex >= len(self.model.columnKeys):
+            return result
+        
+        columnKey = self.model.columnKeys[columnIndex]
+        
+        # Need to extract keys from first column (row headers)
+        if len(self.model.columnKeys) < 1:
+            return result
+        
+        headerKey = self.model.columnKeys[0]
+        
+        for rowIdx, row in enumerate(self.model.rows):
+            rowName = row.get(headerKey, "")
+            
+            # Check if this cell has a key value stored (combobox)
+            if returnKeys:
+                keyValue = self.model.getKeyValue(rowIdx, columnIndex)
+                if keyValue is not None:
+                    result[rowName] = keyValue
+                    continue
+            
+            # Fall back to display value
+            value = row.get(columnKey, "")
+            result[rowName] = value
+        
+        return result
+    
+    def getAllColumnValues(self, startColumn: int = 1, returnKeys: bool = True) -> List[Dict[str, Any]]:
+        """
+        Get all column values as a list of dictionaries (for vertical header layout).
+        
+        Args:
+            startColumn: Starting column index (default 1, skips header column)
+            returnKeys: If True, return the key values for combobox cells.
+                       If False, return the display text.
+        
+        Returns:
+            List of dicts, one per column. Each dict maps row keys to values.
+            Example: [
+                {'param': 'Value1', 'status': 0, 'enabled': True},
+                {'param': 'Value2', 'status': 1, 'enabled': False}
+            ]
+        """
+        result = []
+        
+        for colIdx in range(startColumn, len(self.model.columnKeys)):
+            columnValues = self.getColumnValues(colIdx, returnKeys)
+            result.append(columnValues)
         
         return result
     
