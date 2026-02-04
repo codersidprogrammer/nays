@@ -1317,6 +1317,18 @@ class TableViewHandler(QObject):
             rowData = {key: value for key, value in zip(columnKeys, row)}
             self.model.addRow(rowData)
     
+    # ===== Properties =====
+    
+    @property
+    def rowCount(self) -> int:
+        """Get current number of rows in the table."""
+        return len(self.model.rows)
+    
+    @property
+    def columnCount(self) -> int:
+        """Get current number of columns in the table."""
+        return len(self.model.columnKeys)
+    
     # ===== Utility Methods =====
     
     def getSelectedRow(self) -> int:
