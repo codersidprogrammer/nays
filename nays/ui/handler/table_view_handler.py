@@ -956,6 +956,51 @@ class TableViewHandler(QObject):
         if shouldEmit:
             self.rowCountChanged.emit(self.model.rowCount())
     
+    def adjustRowsToCount(self, targetCount: int, config: List[Dict[str, Any]], comboDisplayMode: str = "value", shouldEmit: bool = True):
+        """
+        Adjust the number of rows to match the target count.
+        
+        If current row count is less than targetCount, adds rows.
+        If current row count is greater than targetCount, removes rows from the end.
+        
+        Args:
+            targetCount: Desired number of rows
+            config: Same config list used in loadFromConfigAsColumns
+            comboDisplayMode: How to display combo items ("value", "key", or "both")
+            shouldEmit: If True, emit signals after adjusting (default True).
+                       Set to False to prevent triggering callbacks.
+        
+        Example:
+            # Current table has 4 rows, need 6 rows
+            handler.adjustRowsToCount(6, config)  # Adds 2 rows
+            
+            # Current table has 8 rows, need 3 rows
+            handler.adjustRowsToCount(3, config)  # Removes 5 rows
+        """
+        currentCount = len(self.model.rows)
+        
+        if currentCount < targetCount:
+            # Add rows
+            rowsToAdd = targetCount - currentCount
+            for _ in range(rowsToAdd):
+                self.addRowForColumnConfig(config, comboDisplayMode, shouldEmit=False)
+            
+            # Emit signals once at the end if needed
+            if shouldEmit:
+                self.rowCountChanged.emit(self.model.rowCount())
+                
+        elif currentCount > targetCount:
+            # Remove rows from the end
+            rowsToRemove = currentCount - targetCount
+            for _ in range(rowsToRemove):
+                # Always remove the last row
+                lastRowIdx = len(self.model.rows) - 1
+                self.model.deleteRow(lastRowIdx, shouldEmit=False)
+            
+            # Emit signals once at the end if needed
+            if shouldEmit:
+                self.rowCountChanged.emit(self.model.rowCount())
+    
     def getConfigValues(self, valueColumn: int = 1, returnKeys: bool = True) -> Dict[str, Any]:
         """
         Get values as a dictionary mapping names to values.
