@@ -1,0 +1,21 @@
+hydrodynamic:
+  radiationOperation:
+    - name: IRAD(i)
+      description: Specify the components of the radiation problems
+      type: 'combobox'
+      defaultValueIndex: 2
+      items: [
+        {-1: "Do not solve any component of the radiation problem"},
+        {0: "Solve the radiation problem only for those modes of motion specified by setting the elements of the array"},
+        {1: "Solve for the radiation velocity potentials due to all six rigid-body modes of motion of the K-th body"},
+      ]
+
+    - name: IDIFF(i)
+      description: Specify the components of the diffraction problems
+      type: 'combobox'
+      defaultValueIndex: 2
+      items: [
+        {-1: "Do not solve the diffraction problem"},
+        {0: "Output only the exciting forces in the modes "},
+        {1: "Solve for all diffraction components, i.e. the complete diffraction problem"},
+      ]

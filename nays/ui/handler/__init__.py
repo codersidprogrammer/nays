@@ -17,6 +17,11 @@ from nays.ui.handler.data_table_handler import (
     fromCheckboxDictValueToNumpy,
     fromDictValueToNumpy,
 )
+from nays.ui.handler.table_editor import (
+    createTableEditor,
+    createTableEditorWithCallback,
+    TableEditorWidget,
+)
 
 __all__ = [
     # TableView Handler
@@ -31,4 +36,8 @@ __all__ = [
     'DataTableBuilder',
     'fromCheckboxDictValueToNumpy',
     'fromDictValueToNumpy',
+    # Table Editor
+    'createTableEditor',
+    'createTableEditorWithCallback',
+    'TableEditorWidget',
 ]
