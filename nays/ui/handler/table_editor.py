@@ -763,6 +763,99 @@ def createTableEditor(
     return editor
 
 
+def createTableEditorEmbedded(
+    table_view: 'QTableView' = None,
+    headers: List[str] = None,
+    config_data: List[Dict[str, Any]] = None,
+    on_save: Optional[callable] = None,
+    on_cancel: Optional[callable] = None,
+    apply_dark_style: bool = True,
+    combo_display_mode: str = "both",
+    parent=None
+) -> TableEditorWidget:
+    """
+    Create a standalone table editor widget with config-based data loading.
+    
+    This function creates an independent table editor window that can be
+    opened alongside your existing UI. Your original QTableView stays in
+    your UI layout unchanged.
+    
+    Args:
+        table_view (QTableView, optional): Reference to existing table (for compatibility, not used)
+        headers (List[str]): Column headers
+        config_data (List[Dict[str, Any]]): Configuration data for loadFromConfigAsColumns()
+        on_save (Optional[callable]): Callback when data is saved
+        on_cancel (Optional[callable]): Callback when operation is cancelled
+        apply_dark_style (bool): Apply dark theme (default: True)
+        combo_display_mode (str): How to display combo values - "key", "value", or "both"
+        parent: Parent widget
+    
+    Returns:
+        TableEditorWidget that can be shown as a separate window
+    
+    Usage Example:
+        # Your UI has this (and it stays there):
+        self.tableLineElementDefinition = QTableView(self.tab_15)
+        self.verticalLayout_16.addWidget(self.tableLineElementDefinition)
+        
+        # To open a separate editor window:
+        def on_save(data):
+            self.vm.onLineElementDefinitionChanged(data['dict'])
+        
+        editor = createTableEditorEmbedded(
+            headers=[...],
+            config_data=_data,
+            on_save=on_save,
+            apply_dark_style=True
+        )
+        
+        # Show as separate window
+        editor.setWindowTitle("Line Element Definition Editor")
+        editor.resize(900, 600)
+        editor.show()
+    
+    """
+    # Create the editor widget
+    editor = TableEditorWidget(parent)
+    
+    # Use the editor's built-in table view
+    # The table_view parameter lets you keep your original widget in the UI
+    # The editor creates its own synchronized table view
+    actual_table_view = editor.tableView
+    
+    # Create and configure handler with the editor's table view
+    handler = TableViewHandler(
+        actual_table_view,
+        headers,
+        applyDefaultStyle=True
+    )
+    editor.handler = handler
+    
+    # Apply styling
+    if apply_dark_style:
+        handler.applyDarkStyle()
+    
+    # Load data from config
+    handler.loadFromConfigAsColumns(
+        config_data,
+        addDefaultRow=True,
+        comboDisplayMode=combo_display_mode
+    )
+    
+    # Update editor status
+    editor._updateStatus("Ready")
+    editor._updateInfo()
+    
+    # Connect callbacks
+    if on_save:
+        editor.dataSaved.connect(on_save)
+    if on_cancel:
+        editor.operationCancelled.connect(on_cancel)
+    
+    return editor
+
+
+
 def createTableEditorWithCallback(
     headers: List[str],
     data: Optional[Union[List[Dict[str, Any]], np.ndarray]] = None,

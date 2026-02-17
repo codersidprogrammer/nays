@@ -20,6 +20,7 @@ from nays.ui.handler.data_table_handler import (
 from nays.ui.handler.table_editor import (
     createTableEditor,
     createTableEditorWithCallback,
+    createTableEditorEmbedded,
     TableEditorWidget,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     # Table Editor
     'createTableEditor',
     'createTableEditorWithCallback',
+    'createTableEditorEmbedded',
     'TableEditorWidget',
 ]
