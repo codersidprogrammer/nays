@@ -6,11 +6,14 @@ pytest>=7.0.0
 pytest-cov>=3.0.0
 coverage>=6.0.0
 
-# Code quality
+# Code quality and formatting
 flake8>=4.0.0
 black>=22.0.0
 isort>=5.0.0
 mypy>=0.950
+ruff>=0.1.0
+autopep8>=2.0.0
+pylint>=2.15.0
 
 # Documentation
 sphinx>=4.0.0

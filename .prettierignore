@@ -1,0 +1,38 @@
+# Prettier ignore file
+# Files and directories to exclude from Prettier formatting
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Generated files
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+
+# Version control
+.git/
+
+# Test coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

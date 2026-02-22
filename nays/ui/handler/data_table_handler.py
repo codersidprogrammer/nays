@@ -27,7 +27,7 @@ class DataTableHandler(QObject):
     rowCountChange = Signal(int)
     dataChange = Signal(np.ndarray)
     
-    def __init__(self, table: QTableWidget, setDefaultStyle:bool = True):
+    def __init__(self, table: QTableWidget, setDefaultStyle:bool = False):
         super().__init__()
         self.table = table
         self.rowCount = table.rowCount()

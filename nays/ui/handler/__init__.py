@@ -10,6 +10,7 @@ from nays.ui.handler.table_view_handler import (
     CheckBoxDelegate,
     MultiTypeCellDelegate,
 )
+from nays.ui.handler.tree_view_handler import TreeViewHandler
 from nays.ui.handler.data_table_handler import (
     DataTableHandler,
     DataTableBuilderHandler,
@@ -42,4 +43,6 @@ __all__ = [
     'createTableEditorWithCallback',
     'createTableEditorEmbedded',
     'TableEditorWidget',
+    # TreeView Handler
+    'TreeViewHandler',
 ]
