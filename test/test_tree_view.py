@@ -13,58 +13,92 @@ PySide6 MVVM QTreeView with:
 Install:  pip install PySide6
 Run:      python mvvm_treeview.py
 """
+
 from __future__ import annotations
 
 import sys
 import time
-from enum import Enum, auto
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import Any
 
 from PySide6.QtCore import (
-    Qt, Signal, QObject, QTimer,
-    QAbstractItemModel, QModelIndex, QPersistentModelIndex,
-    QSize, QThread, QRunnable, QThreadPool, QMetaObject, Q_ARG
+    Q_ARG,
+    QAbstractItemModel,
+    QMetaObject,
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    QRunnable,
+    QSize,
+    Qt,
+    QThread,
+    QThreadPool,
+    QTimer,
+    Signal,
 )
 from PySide6.QtGui import (
-    QColor, QPainter, QPixmap, QIcon,
-    QPen, QBrush, QFont, QPainterPath, QAction
+    QAction,
+    QBrush,
+    QColor,
+    QFont,
+    QIcon,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
 )
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget,
-    QVBoxLayout, QHBoxLayout, QSplitter,
-    QTreeView, QPushButton, QLabel,
-    QGroupBox, QFrame, QStatusBar,
-    QMenu, QDialog, QFormLayout,
-    QLineEdit, QTextEdit, QDialogButtonBox,
-    QMessageBox, QPlainTextEdit, QSizePolicy,
-    QAbstractItemView, QHeaderView
+    QAbstractItemView,
+    QApplication,
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QPlainTextEdit,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QStatusBar,
+    QTextEdit,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
 )
-
 
 # ═══════════════════════════════════════════════════════════
 # 1. DATA NODES  (pure Python, no Qt)
 # ═══════════════════════════════════════════════════════════
 
+
 class NodeKind(Enum):
-    CATEGORY = auto()   # parent-level
-    ITEM     = auto()   # child-level
+    CATEGORY = auto()  # parent-level
+    ITEM = auto()  # child-level
 
 
 @dataclass
 class TreeNode:
     """One node in the tree. Children only allowed on CATEGORY nodes."""
-    id:          int
-    kind:        NodeKind
-    name:        str
-    description: str        = ""
-    status:      str        = "active"    # active | warning | error | disabled
-    tags:        list[str]  = field(default_factory=list)
-    children:    list["TreeNode"] = field(default_factory=list)
-    parent:      "TreeNode | None" = field(default=None, repr=False, compare=False)
+
+    id: int
+    kind: NodeKind
+    name: str
+    description: str = ""
+    status: str = "active"  # active | warning | error | disabled
+    tags: list[str] = field(default_factory=list)
+    children: list["TreeNode"] = field(default_factory=list)
+    parent: "TreeNode | None" = field(default=None, repr=False, compare=False)
 
     # runtime state
-    is_loading:  bool = False
+    is_loading: bool = False
 
     def child_count(self) -> int:
         return len(self.children)
@@ -84,6 +118,7 @@ class TreeNode:
 # 2. ICON FACTORY  (all icons painted with QPainter)
 # ═══════════════════════════════════════════════════════════
 
+
 class IconFactory:
     """Creates QIcon objects painted on-the-fly — no image files needed."""
 
@@ -100,24 +135,24 @@ class IconFactory:
     def _make(cls, name: str, size: int) -> QIcon:
         px = QPixmap(size, size)
         px.fill(Qt.transparent)
-        p  = QPainter(px)
+        p = QPainter(px)
         p.setRenderHint(QPainter.Antialiasing)
         dispatch = {
-            "folder":       cls._folder,
-            "folder_open":  cls._folder_open,
-            "item":         cls._item,
+            "folder": cls._folder,
+            "folder_open": cls._folder_open,
+            "item": cls._item,
             "item_warning": cls._item_warning,
-            "item_error":   cls._item_error,
-            "item_disabled":cls._item_disabled,
-            "loading":      cls._loading,
-            "add":          cls._add,
-            "delete":       cls._delete,
-            "edit":         cls._edit,
-            "refresh":      cls._refresh,
-            "expand":       cls._expand,
-            "collapse":     cls._collapse,
-            "info":         cls._info,
-            "properties":   cls._properties,
+            "item_error": cls._item_error,
+            "item_disabled": cls._item_disabled,
+            "loading": cls._loading,
+            "add": cls._add,
+            "delete": cls._delete,
+            "edit": cls._edit,
+            "refresh": cls._refresh,
+            "expand": cls._expand,
+            "collapse": cls._collapse,
+            "info": cls._info,
+            "properties": cls._properties,
         }
         draw = dispatch.get(name, cls._unknown)
         draw(p, size)
@@ -131,14 +166,14 @@ class IconFactory:
         p.setPen(QPen(QColor("#c87f0a"), 1))
         # tab
         path = QPainterPath()
-        path.moveTo(1, s*0.45)
-        path.lineTo(1, s*0.9)
-        path.lineTo(s-1, s*0.9)
-        path.lineTo(s-1, s*0.35)
-        path.lineTo(s*0.55, s*0.35)
-        path.lineTo(s*0.45, s*0.2)
-        path.lineTo(s*0.1, s*0.2)
-        path.lineTo(s*0.1, s*0.45)
+        path.moveTo(1, s * 0.45)
+        path.lineTo(1, s * 0.9)
+        path.lineTo(s - 1, s * 0.9)
+        path.lineTo(s - 1, s * 0.35)
+        path.lineTo(s * 0.55, s * 0.35)
+        path.lineTo(s * 0.45, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.45)
         path.closeSubpath()
         p.drawPath(path)
 
@@ -147,15 +182,15 @@ class IconFactory:
         p.setBrush(QColor("#ffd080"))
         p.setPen(QPen(QColor("#c87f0a"), 1))
         path = QPainterPath()
-        path.moveTo(1, s*0.9)
-        path.lineTo(s*0.15, s*0.45)
-        path.lineTo(s-1, s*0.45)
-        path.lineTo(s-1, s*0.35)
-        path.lineTo(s*0.55, s*0.35)
-        path.lineTo(s*0.45, s*0.2)
-        path.lineTo(s*0.1, s*0.2)
-        path.lineTo(s*0.1, s*0.45)
-        path.lineTo(1, s*0.45)
+        path.moveTo(1, s * 0.9)
+        path.lineTo(s * 0.15, s * 0.45)
+        path.lineTo(s - 1, s * 0.45)
+        path.lineTo(s - 1, s * 0.35)
+        path.lineTo(s * 0.55, s * 0.35)
+        path.lineTo(s * 0.45, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.45)
+        path.lineTo(1, s * 0.45)
         path.closeSubpath()
         p.drawPath(path)
 
@@ -163,51 +198,53 @@ class IconFactory:
     def _item(p, s):
         p.setBrush(QColor("#5b9bd5"))
         p.setPen(QPen(QColor("#2e6da4"), 1))
-        p.drawRoundedRect(2, 2, s-4, s-4, 2, 2)
+        p.drawRoundedRect(2, 2, s - 4, s - 4, 2, 2)
         p.setPen(QPen(QColor("#ffffff"), 1.2))
         m = s // 4
-        p.drawLine(m, s//2, s-m, s//2)
-        p.drawLine(s//2, m, s//2, s-m)
+        p.drawLine(m, s // 2, s - m, s // 2)
+        p.drawLine(s // 2, m, s // 2, s - m)
 
     @staticmethod
     def _item_warning(p, s):
         p.setBrush(QColor("#f0ad4e"))
         p.setPen(QPen(QColor("#c87f0a"), 1))
-        pts = [s//2, 1,  s-1, s-2,  1, s-2]
-        from PySide6.QtGui import QPolygon
+        pts = [s // 2, 1, s - 1, s - 2, 1, s - 2]
         from PySide6.QtCore import QPoint
-        poly = [QPoint(s//2, 1), QPoint(s-1, s-2), QPoint(1, s-2)]
+        from PySide6.QtGui import QPolygon
+
+        poly = [QPoint(s // 2, 1), QPoint(s - 1, s - 2), QPoint(1, s - 2)]
         p.drawPolygon(poly)
         p.setPen(QPen(QColor("#7a4800"), 1.5))
-        p.drawLine(s//2, s//3, s//2, s*2//3)
-        p.drawPoint(s//2, s*3//4)
+        p.drawLine(s // 2, s // 3, s // 2, s * 2 // 3)
+        p.drawPoint(s // 2, s * 3 // 4)
 
     @staticmethod
     def _item_error(p, s):
         p.setBrush(QColor("#d9534f"))
         p.setPen(QPen(QColor("#8b1a18"), 1))
-        p.drawEllipse(1, 1, s-2, s-2)
+        p.drawEllipse(1, 1, s - 2, s - 2)
         p.setPen(QPen(QColor("#ffffff"), 1.8))
         m = s // 3
-        p.drawLine(m, m, s-m, s-m)
-        p.drawLine(s-m, m, m, s-m)
+        p.drawLine(m, m, s - m, s - m)
+        p.drawLine(s - m, m, m, s - m)
 
     @staticmethod
     def _item_disabled(p, s):
         p.setBrush(QColor("#aaaaaa"))
         p.setPen(QPen(QColor("#777777"), 1))
-        p.drawRoundedRect(2, 2, s-4, s-4, 2, 2)
+        p.drawRoundedRect(2, 2, s - 4, s - 4, 2, 2)
 
     @staticmethod
     def _loading(p, s):
         p.setBrush(Qt.NoBrush)
         for i in range(8):
             import math
+
             angle = i * 45
-            rad   = math.radians(angle)
+            rad = math.radians(angle)
             alpha = 40 + int(215 * i / 7)
             p.setPen(QPen(QColor(80, 80, 200, alpha), 1.5))
-            cx, cy, r = s/2, s/2, s/2 - 2
+            cx, cy, r = s / 2, s / 2, s / 2 - 2
             x1 = cx + r * 0.5 * math.cos(rad)
             y1 = cy + r * 0.5 * math.sin(rad)
             x2 = cx + r * math.cos(rad)
@@ -218,21 +255,21 @@ class IconFactory:
     def _add(p, s):
         p.setBrush(QColor("#5cb85c"))
         p.setPen(QPen(QColor("#3d8b3d"), 1))
-        p.drawEllipse(1, 1, s-2, s-2)
+        p.drawEllipse(1, 1, s - 2, s - 2)
         p.setPen(QPen(QColor("#ffffff"), 2))
         m = s // 4
-        p.drawLine(s//2, m, s//2, s-m)
-        p.drawLine(m, s//2, s-m, s//2)
+        p.drawLine(s // 2, m, s // 2, s - m)
+        p.drawLine(m, s // 2, s - m, s // 2)
 
     @staticmethod
     def _delete(p, s):
         p.setBrush(QColor("#d9534f"))
         p.setPen(QPen(QColor("#8b1a18"), 1))
-        p.drawRoundedRect(1, 1, s-2, s-2, 2, 2)
+        p.drawRoundedRect(1, 1, s - 2, s - 2, 2, 2)
         p.setPen(QPen(QColor("#ffffff"), 2))
         m = s // 4
-        p.drawLine(m, m, s-m, s-m)
-        p.drawLine(s-m, m, m, s-m)
+        p.drawLine(m, m, s - m, s - m)
+        p.drawLine(s - m, m, m, s - m)
 
     @staticmethod
     def _edit(p, s):
@@ -240,11 +277,11 @@ class IconFactory:
         p.setPen(QPen(QColor("#2e6da4"), 1))
         # pencil shape
         path = QPainterPath()
-        path.moveTo(s*0.7, s*0.1)
-        path.lineTo(s*0.9, s*0.3)
-        path.lineTo(s*0.3, s*0.9)
-        path.lineTo(s*0.1, s*0.9)
-        path.lineTo(s*0.1, s*0.7)
+        path.moveTo(s * 0.7, s * 0.1)
+        path.lineTo(s * 0.9, s * 0.3)
+        path.lineTo(s * 0.3, s * 0.9)
+        path.lineTo(s * 0.1, s * 0.9)
+        path.lineTo(s * 0.1, s * 0.7)
         path.closeSubpath()
         p.drawPath(path)
 
@@ -253,45 +290,49 @@ class IconFactory:
         p.setBrush(Qt.NoBrush)
         p.setPen(QPen(QColor("#0078d7"), 2))
         import math
-        p.drawArc(2, 2, s-4, s-4, 30*16, 300*16)
+
+        p.drawArc(2, 2, s - 4, s - 4, 30 * 16, 300 * 16)
         # arrowhead
         p.setBrush(QColor("#0078d7"))
         p.setPen(Qt.NoPen)
         angle = math.radians(30)
-        cx, cy, r = s/2, s/2, s/2-2
-        ax = cx + r*math.cos(angle)
-        ay = cy - r*math.sin(angle)
+        cx, cy, r = s / 2, s / 2, s / 2 - 2
+        ax = cx + r * math.cos(angle)
+        ay = cy - r * math.sin(angle)
         from PySide6.QtCore import QPoint
-        p.drawPolygon([
-            QPoint(int(ax), int(ay)-3),
-            QPoint(int(ax)+4, int(ay)+2),
-            QPoint(int(ax)-2, int(ay)+3),
-        ])
+
+        p.drawPolygon(
+            [
+                QPoint(int(ax), int(ay) - 3),
+                QPoint(int(ax) + 4, int(ay) + 2),
+                QPoint(int(ax) - 2, int(ay) + 3),
+            ]
+        )
 
     @staticmethod
     def _expand(p, s):
         p.setBrush(QColor("#e1e1e1"))
         p.setPen(QPen(QColor("#adadad"), 1))
-        p.drawRect(1, 1, s-2, s-2)
+        p.drawRect(1, 1, s - 2, s - 2)
         p.setPen(QPen(QColor("#000"), 1.5))
         m = s // 4
-        p.drawLine(m, s//2, s-m, s//2)
-        p.drawLine(s//2, m, s//2, s-m)
+        p.drawLine(m, s // 2, s - m, s // 2)
+        p.drawLine(s // 2, m, s // 2, s - m)
 
     @staticmethod
     def _collapse(p, s):
         p.setBrush(QColor("#e1e1e1"))
         p.setPen(QPen(QColor("#adadad"), 1))
-        p.drawRect(1, 1, s-2, s-2)
+        p.drawRect(1, 1, s - 2, s - 2)
         p.setPen(QPen(QColor("#000"), 1.5))
         m = s // 4
-        p.drawLine(m, s//2, s-m, s//2)
+        p.drawLine(m, s // 2, s - m, s // 2)
 
     @staticmethod
     def _info(p, s):
         p.setBrush(QColor("#5b9bd5"))
         p.setPen(QPen(QColor("#2e6da4"), 1))
-        p.drawEllipse(1, 1, s-2, s-2)
+        p.drawEllipse(1, 1, s - 2, s - 2)
         p.setPen(QPen(Qt.white, 1.8))
         p.drawText(0, 0, s, s, Qt.AlignCenter, "i")
 
@@ -300,19 +341,20 @@ class IconFactory:
         p.setBrush(Qt.NoBrush)
         p.setPen(QPen(QColor("#555"), 1.5))
         m = 3
-        for y in [s//4, s//2, s*3//4]:
-            p.drawLine(m, y, s-m, y)
+        for y in [s // 4, s // 2, s * 3 // 4]:
+            p.drawLine(m, y, s - m, y)
 
     @staticmethod
     def _unknown(p, s):
         p.setBrush(QColor("#cccccc"))
         p.setPen(QPen(QColor("#999"), 1))
-        p.drawRect(1, 1, s-2, s-2)
+        p.drawRect(1, 1, s - 2, s - 2)
 
 
 # ═══════════════════════════════════════════════════════════
 # 3. VIEW-MODEL  (all state lives here)
 # ═══════════════════════════════════════════════════════════
+
 
 class TreeViewModel(QObject):
     """
@@ -329,20 +371,20 @@ class TreeViewModel(QObject):
     status_message(str)
     """
 
-    load_started     = Signal()
-    load_finished    = Signal()
-    node_updated     = Signal(int)          # node id
-    node_added       = Signal(int, int)     # parent_id, child_row
-    node_removed     = Signal(int)          # node id
+    load_started = Signal()
+    load_finished = Signal()
+    node_updated = Signal(int)  # node id
+    node_added = Signal(int, int)  # parent_id, child_row
+    node_removed = Signal(int)  # node id
     action_triggered = Signal(str, object)  # action_name, TreeNode
-    status_message   = Signal(str)
+    status_message = Signal(str)
 
     def __init__(self):
         super().__init__()
-        self._roots:     list[TreeNode] = []
-        self._id_map:    dict[int, TreeNode] = {}
-        self._suppress   = False
-        self._next_id    = 1000
+        self._roots: list[TreeNode] = []
+        self._id_map: dict[int, TreeNode] = {}
+        self._suppress = False
+        self._next_id = 1000
 
     # ── roots ─────────────────────────────────────────────
     @property
@@ -366,43 +408,123 @@ class TreeViewModel(QObject):
         """Simulated DB result — in production replace with real query."""
         raw_data = [
             {
-                "id": 1, "name": "Engineering",
+                "id": 1,
+                "name": "Engineering",
                 "description": "Core engineering projects",
-                "status": "active", "tags": ["tech", "core"],
+                "status": "active",
+                "tags": ["tech", "core"],
                 "children": [
-                    {"id": 11, "name": "Hydraulic System",   "description": "Main hydraulic circuit design",  "status": "active",   "tags": ["hydraulic"]},
-                    {"id": 12, "name": "Control Module v2",  "description": "Digital control unit firmware",  "status": "warning",  "tags": ["firmware", "control"]},
-                    {"id": 13, "name": "Structural Frame",   "description": "Primary load-bearing structure", "status": "active",   "tags": ["structural"]},
-                    {"id": 14, "name": "Legacy Wiring",      "description": "Deprecated wiring harness",      "status": "disabled", "tags": ["legacy"]},
+                    {
+                        "id": 11,
+                        "name": "Hydraulic System",
+                        "description": "Main hydraulic circuit design",
+                        "status": "active",
+                        "tags": ["hydraulic"],
+                    },
+                    {
+                        "id": 12,
+                        "name": "Control Module v2",
+                        "description": "Digital control unit firmware",
+                        "status": "warning",
+                        "tags": ["firmware", "control"],
+                    },
+                    {
+                        "id": 13,
+                        "name": "Structural Frame",
+                        "description": "Primary load-bearing structure",
+                        "status": "active",
+                        "tags": ["structural"],
+                    },
+                    {
+                        "id": 14,
+                        "name": "Legacy Wiring",
+                        "description": "Deprecated wiring harness",
+                        "status": "disabled",
+                        "tags": ["legacy"],
+                    },
                 ],
             },
             {
-                "id": 2, "name": "Research & Development",
+                "id": 2,
+                "name": "Research & Development",
                 "description": "Experimental and prototype work",
-                "status": "active", "tags": ["research"],
+                "status": "active",
+                "tags": ["research"],
                 "children": [
-                    {"id": 21, "name": "AI Sensor Fusion",   "description": "ML-based sensor data fusion",    "status": "active",   "tags": ["ai", "sensor"]},
-                    {"id": 22, "name": "Carbon Composite",   "description": "New material testing batch",     "status": "error",    "tags": ["materials"]},
-                    {"id": 23, "name": "Prototype XR-9",     "description": "Next-gen propulsion prototype",  "status": "active",   "tags": ["propulsion"]},
+                    {
+                        "id": 21,
+                        "name": "AI Sensor Fusion",
+                        "description": "ML-based sensor data fusion",
+                        "status": "active",
+                        "tags": ["ai", "sensor"],
+                    },
+                    {
+                        "id": 22,
+                        "name": "Carbon Composite",
+                        "description": "New material testing batch",
+                        "status": "error",
+                        "tags": ["materials"],
+                    },
+                    {
+                        "id": 23,
+                        "name": "Prototype XR-9",
+                        "description": "Next-gen propulsion prototype",
+                        "status": "active",
+                        "tags": ["propulsion"],
+                    },
                 ],
             },
             {
-                "id": 3, "name": "Quality Assurance",
+                "id": 3,
+                "name": "Quality Assurance",
                 "description": "Testing and certification workflows",
-                "status": "warning", "tags": ["qa", "testing"],
+                "status": "warning",
+                "tags": ["qa", "testing"],
                 "children": [
-                    {"id": 31, "name": "Fatigue Test Rig",   "description": "Cyclic load testing apparatus",  "status": "active",   "tags": ["testing"]},
-                    {"id": 32, "name": "Cert Package Rev3",  "description": "Regulatory certification docs",  "status": "warning",  "tags": ["cert", "docs"]},
+                    {
+                        "id": 31,
+                        "name": "Fatigue Test Rig",
+                        "description": "Cyclic load testing apparatus",
+                        "status": "active",
+                        "tags": ["testing"],
+                    },
+                    {
+                        "id": 32,
+                        "name": "Cert Package Rev3",
+                        "description": "Regulatory certification docs",
+                        "status": "warning",
+                        "tags": ["cert", "docs"],
+                    },
                 ],
             },
             {
-                "id": 4, "name": "Documentation",
+                "id": 4,
+                "name": "Documentation",
                 "description": "Technical documentation and manuals",
-                "status": "active", "tags": ["docs"],
+                "status": "active",
+                "tags": ["docs"],
                 "children": [
-                    {"id": 41, "name": "Installation Guide", "description": "Step-by-step installation manual","status": "active",   "tags": ["manual"]},
-                    {"id": 42, "name": "API Reference",      "description": "Developer API documentation",    "status": "active",   "tags": ["api", "dev"]},
-                    {"id": 43, "name": "Release Notes v4.1", "description": "Version 4.1 change log",         "status": "active",   "tags": ["release"]},
+                    {
+                        "id": 41,
+                        "name": "Installation Guide",
+                        "description": "Step-by-step installation manual",
+                        "status": "active",
+                        "tags": ["manual"],
+                    },
+                    {
+                        "id": 42,
+                        "name": "API Reference",
+                        "description": "Developer API documentation",
+                        "status": "active",
+                        "tags": ["api", "dev"],
+                    },
+                    {
+                        "id": 43,
+                        "name": "Release Notes v4.1",
+                        "description": "Version 4.1 change log",
+                        "status": "active",
+                        "tags": ["release"],
+                    },
                 ],
             },
         ]
@@ -418,16 +540,20 @@ class TreeViewModel(QObject):
         self._id_map.clear()
         for rd in raw:
             parent = TreeNode(
-                id=rd["id"], kind=NodeKind.CATEGORY,
-                name=rd["name"], description=rd["description"],
+                id=rd["id"],
+                kind=NodeKind.CATEGORY,
+                name=rd["name"],
+                description=rd["description"],
                 status=rd.get("status", "active"),
                 tags=rd.get("tags", []),
             )
             self._id_map[parent.id] = parent
             for cd in rd.get("children", []):
                 child = TreeNode(
-                    id=cd["id"], kind=NodeKind.ITEM,
-                    name=cd["name"], description=cd["description"],
+                    id=cd["id"],
+                    kind=NodeKind.ITEM,
+                    name=cd["name"],
+                    description=cd["description"],
                     status=cd.get("status", "active"),
                     tags=cd.get("tags", []),
                     parent=parent,
@@ -437,21 +563,27 @@ class TreeViewModel(QObject):
             self._roots.append(parent)
 
     # ── mutations ──────────────────────────────────────────
-    def update_node(self, node: TreeNode, name: str = None,
-                    description: str = None, status: str = None):
-        if name        is not None: node.name        = name
-        if description is not None: node.description = description
-        if status      is not None: node.status      = status
+    def update_node(
+        self, node: TreeNode, name: str = None, description: str = None, status: str = None
+    ):
+        if name is not None:
+            node.name = name
+        if description is not None:
+            node.description = description
+        if status is not None:
+            node.status = status
         self.node_updated.emit(node.id)
         self.status_message.emit(f"Updated '{node.name}'.")
 
-    def add_child(self, parent: TreeNode, name: str,
-                  description: str = "") -> TreeNode:
+    def add_child(self, parent: TreeNode, name: str, description: str = "") -> TreeNode:
         self._next_id += 1
         child = TreeNode(
-            id=self._next_id, kind=NodeKind.ITEM,
-            name=name, description=description,
-            status="active", parent=parent,
+            id=self._next_id,
+            kind=NodeKind.ITEM,
+            name=name,
+            description=description,
+            status="active",
+            parent=parent,
         )
         parent.children.append(child)
         self._id_map[child.id] = child
@@ -483,15 +615,16 @@ class TreeViewModel(QObject):
 # 4. Qt ITEM MODEL  (adapter over TreeViewModel)
 # ═══════════════════════════════════════════════════════════
 
+
 class TreeItemModel(QAbstractItemModel):
     """
     Bridges TreeViewModel ↔ QTreeView.
     Internal pointer of each QModelIndex = TreeNode object.
     """
 
-    COL_NAME   = 0
+    COL_NAME = 0
     COL_STATUS = 1
-    COL_TAGS   = 2
+    COL_TAGS = 2
 
     HEADERS = ["Name", "Status", "Tags"]
 
@@ -505,8 +638,7 @@ class TreeItemModel(QAbstractItemModel):
         vm.node_removed.connect(self._on_node_removed)
 
     # ── QAbstractItemModel required ────────────────────────
-    def index(self, row: int, col: int,
-              parent: QModelIndex = QModelIndex()) -> QModelIndex:
+    def index(self, row: int, col: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
         if not self.hasIndex(row, col, parent):
             return QModelIndex()
         if not parent.isValid():
@@ -546,12 +678,15 @@ class TreeItemModel(QAbstractItemModel):
         if not index.isValid():
             return None
         node: TreeNode = index.internalPointer()
-        col  = index.column()
+        col = index.column()
 
         if role == Qt.DisplayRole:
-            if col == self.COL_NAME:   return node.name
-            if col == self.COL_STATUS: return node.status.capitalize()
-            if col == self.COL_TAGS:   return ", ".join(node.tags)
+            if col == self.COL_NAME:
+                return node.name
+            if col == self.COL_STATUS:
+                return node.status.capitalize()
+            if col == self.COL_TAGS:
+                return ", ".join(node.tags)
 
         if role == Qt.DecorationRole and col == self.COL_NAME:
             return self._icon_for(node)
@@ -560,22 +695,27 @@ class TreeItemModel(QAbstractItemModel):
             return self._fg_color(node)
 
         if role == Qt.ToolTipRole:
-            return (f"<b>{node.name}</b><br>"
-                    f"{node.description}<br>"
-                    f"Status: <i>{node.status}</i><br>"
-                    f"Tags: {', '.join(node.tags) or '—'}")
+            return (
+                f"<b>{node.name}</b><br>"
+                f"{node.description}<br>"
+                f"Status: <i>{node.status}</i><br>"
+                f"Tags: {', '.join(node.tags) or '—'}"
+            )
 
         if role == Qt.UserRole:
-            return node   # pass the raw node for context menus
+            return node  # pass the raw node for context menus
 
         if role == Qt.FontRole:
             if node.kind == NodeKind.CATEGORY:
-                f = QFont(); f.setBold(True); return f
+                f = QFont()
+                f.setBold(True)
+                return f
 
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation,
-                   role: int = Qt.DisplayRole) -> Any:
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole
+    ) -> Any:
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.HEADERS[section]
         return None
@@ -593,18 +733,18 @@ class TreeItemModel(QAbstractItemModel):
             return IconFactory.get("folder")
         # child icon depends on status
         mapping = {
-            "active":   "item",
-            "warning":  "item_warning",
-            "error":    "item_error",
+            "active": "item",
+            "warning": "item_warning",
+            "error": "item_error",
             "disabled": "item_disabled",
         }
         return IconFactory.get(mapping.get(node.status, "item"))
 
     def _fg_color(self, node: TreeNode) -> QColor:
         colors = {
-            "active":   QColor("#000000"),
-            "warning":  QColor("#8a6000"),
-            "error":    QColor("#a31515"),
+            "active": QColor("#000000"),
+            "warning": QColor("#8a6000"),
+            "error": QColor("#a31515"),
             "disabled": QColor("#909090"),
         }
         return colors.get(node.status, QColor("#000000"))
@@ -654,6 +794,7 @@ class TreeItemModel(QAbstractItemModel):
 # 5. DIALOGS
 # ═══════════════════════════════════════════════════════════
 
+
 class EditDialog(QDialog):
     """Edit a node's name, description and status."""
 
@@ -666,6 +807,7 @@ class EditDialog(QDialog):
         self._node = node
 
         from PySide6.QtWidgets import QComboBox
+
         layout = QFormLayout(self)
         layout.setSpacing(10)
         layout.setContentsMargins(14, 14, 14, 10)
@@ -688,9 +830,9 @@ class EditDialog(QDialog):
 
     def values(self) -> dict:
         return {
-            "name":        self._name.text().strip(),
+            "name": self._name.text().strip(),
             "description": self._desc.toPlainText().strip(),
-            "status":      self._status.currentText(),
+            "status": self._status.currentText(),
         }
 
 
@@ -707,15 +849,16 @@ class PropertiesDialog(QDialog):
         layout.setContentsMargins(14, 14, 14, 10)
 
         def ro(text):
-            l = QLineEdit(text); l.setReadOnly(True)
+            l = QLineEdit(text)
+            l.setReadOnly(True)
             l.setStyleSheet("background:#f0f0f0;border:1px solid #c0c0c0;")
             return l
 
-        layout.addRow("ID:",          ro(str(node.id)))
-        layout.addRow("Kind:",        ro(node.kind.name.capitalize()))
-        layout.addRow("Name:",        ro(node.name))
-        layout.addRow("Status:",      ro(node.status))
-        layout.addRow("Tags:",        ro(", ".join(node.tags) or "—"))
+        layout.addRow("ID:", ro(str(node.id)))
+        layout.addRow("Kind:", ro(node.kind.name.capitalize()))
+        layout.addRow("Name:", ro(node.name))
+        layout.addRow("Status:", ro(node.status))
+        layout.addRow("Tags:", ro(", ".join(node.tags) or "—"))
 
         desc = QTextEdit(node.description)
         desc.setReadOnly(True)
@@ -749,7 +892,7 @@ class AddChildDialog(QDialog):
         self._desc = QLineEdit()
         self._desc.setPlaceholderText("Short description…")
 
-        layout.addRow("Name:",        self._name)
+        layout.addRow("Name:", self._name)
         layout.addRow("Description:", self._desc)
 
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -759,7 +902,7 @@ class AddChildDialog(QDialog):
 
     def values(self) -> dict:
         return {
-            "name":        self._name.text().strip(),
+            "name": self._name.text().strip(),
             "description": self._desc.text().strip(),
         }
 
@@ -767,6 +910,7 @@ class AddChildDialog(QDialog):
 # ═══════════════════════════════════════════════════════════
 # 6. DETAIL PANEL  (right side)
 # ═══════════════════════════════════════════════════════════
+
 
 class DetailPanel(QWidget):
     """Displays the selected node's full details."""
@@ -784,7 +928,8 @@ class DetailPanel(QWidget):
         title.setStyleSheet("font-weight:700;font-size:12px;")
         vl.addWidget(title)
 
-        sep = QFrame(); sep.setFrameShape(QFrame.HLine)
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet("color:#c0c0c0;")
         vl.addWidget(sep)
 
@@ -800,11 +945,11 @@ class DetailPanel(QWidget):
             hl.addWidget(val, stretch=1)
             return hl, val
 
-        r1, self._lbl_name  = row("Name:")
-        r2, self._lbl_kind  = row("Kind:")
-        r3, self._lbl_status= row("Status:")
-        r4, self._lbl_tags  = row("Tags:")
-        r5, self._lbl_id    = row("ID:")
+        r1, self._lbl_name = row("Name:")
+        r2, self._lbl_kind = row("Kind:")
+        r3, self._lbl_status = row("Status:")
+        r4, self._lbl_tags = row("Tags:")
+        r5, self._lbl_id = row("ID:")
 
         for r in (r1, r2, r3, r4, r5):
             vl.addLayout(r)
@@ -833,8 +978,13 @@ class DetailPanel(QWidget):
 
     def show_node(self, node: TreeNode | None):
         if node is None:
-            for lbl in (self._lbl_name, self._lbl_kind, self._lbl_status,
-                        self._lbl_tags, self._lbl_id):
+            for lbl in (
+                self._lbl_name,
+                self._lbl_kind,
+                self._lbl_status,
+                self._lbl_tags,
+                self._lbl_id,
+            ):
                 lbl.setText("—")
             self._desc.setPlainText("")
             self._badge.setText("")
@@ -848,9 +998,9 @@ class DetailPanel(QWidget):
         self._desc.setPlainText(node.description)
 
         badge_styles = {
-            "active":   ("Active",   "#d4edda", "#155724", "#c3e6cb"),
-            "warning":  ("Warning",  "#fff3cd", "#856404", "#ffeeba"),
-            "error":    ("Error",    "#f8d7da", "#721c24", "#f5c6cb"),
+            "active": ("Active", "#d4edda", "#155724", "#c3e6cb"),
+            "warning": ("Warning", "#fff3cd", "#856404", "#ffeeba"),
+            "error": ("Error", "#f8d7da", "#721c24", "#f5c6cb"),
             "disabled": ("Disabled", "#e2e3e5", "#383d41", "#d6d8db"),
         }
         label, bg, fg, border = badge_styles.get(
@@ -980,7 +1130,7 @@ class MainWindow(QMainWindow):
 
         # Tree group — created BEFORE toolbar so _tree exists when signals connect
         tree_grp = QGroupBox("Project Tree")
-        tree_vl  = QVBoxLayout(tree_grp)
+        tree_vl = QVBoxLayout(tree_grp)
         tree_vl.setContentsMargins(3, 3, 3, 3)
 
         self._tree = QTreeView()
@@ -1014,7 +1164,7 @@ class MainWindow(QMainWindow):
 
         # Detail panel group
         detail_grp = QGroupBox("Details")
-        detail_vl  = QVBoxLayout(detail_grp)
+        detail_vl = QVBoxLayout(detail_grp)
         detail_vl.setContentsMargins(3, 3, 3, 3)
         self._detail = DetailPanel()
         detail_vl.addWidget(self._detail)
@@ -1030,7 +1180,7 @@ class MainWindow(QMainWindow):
 
     def _build_toolbar(self) -> QGroupBox:
         grp = QGroupBox("Toolbar")
-        hl  = QHBoxLayout(grp)
+        hl = QHBoxLayout(grp)
         hl.setContentsMargins(6, 4, 6, 4)
         hl.setSpacing(4)
 
@@ -1041,12 +1191,12 @@ class MainWindow(QMainWindow):
                 b.setObjectName(obj_name)
             return b
 
-        self._btn_load    = btn("Reload from DB",  "refresh",  "loadBtn")
-        self._btn_add     = btn("Add Item",         "add",      "addBtn")
-        self._btn_delete  = btn("Delete Selected",  "delete",   "deleteBtn")
-        self._btn_expand  = btn("Expand All",       "expand",   "expandBtn")
-        self._btn_collapse= btn("Collapse All",     "collapse")
-        self._btn_edit    = btn("Edit Selected",    "edit")
+        self._btn_load = btn("Reload from DB", "refresh", "loadBtn")
+        self._btn_add = btn("Add Item", "add", "addBtn")
+        self._btn_delete = btn("Delete Selected", "delete", "deleteBtn")
+        self._btn_expand = btn("Expand All", "expand", "expandBtn")
+        self._btn_collapse = btn("Collapse All", "collapse")
+        self._btn_edit = btn("Edit Selected", "edit")
 
         self._btn_load.clicked.connect(lambda: self._vm.load_from_db())
         self._btn_add.clicked.connect(self._toolbar_add)
@@ -1055,12 +1205,19 @@ class MainWindow(QMainWindow):
         self._btn_collapse.clicked.connect(lambda: self._tree.collapseAll())
         self._btn_edit.clicked.connect(self._toolbar_edit)
 
-        sep = QFrame(); sep.setFrameShape(QFrame.VLine)
+        sep = QFrame()
+        sep.setFrameShape(QFrame.VLine)
         sep.setStyleSheet("color:#adadad;")
 
-        for w in (self._btn_load, sep,
-                  self._btn_add, self._btn_delete, self._btn_edit,
-                  self._btn_expand, self._btn_collapse):
+        for w in (
+            self._btn_load,
+            sep,
+            self._btn_add,
+            self._btn_delete,
+            self._btn_edit,
+            self._btn_expand,
+            self._btn_collapse,
+        ):
             hl.addWidget(w)
         hl.addStretch()
         return grp
@@ -1117,29 +1274,22 @@ class MainWindow(QMainWindow):
         menu.addAction(header)
         menu.addSeparator()
 
-        a_expand   = QAction(IconFactory.get("expand"),     "Expand",        self)
-        a_collapse  = QAction(IconFactory.get("collapse"),   "Collapse",      self)
-        a_add       = QAction(IconFactory.get("add"),        "Add Item…",     self)
-        a_edit      = QAction(IconFactory.get("edit"),       "Edit Category…",self)
-        a_props     = QAction(IconFactory.get("properties"), "Properties…",   self)
+        a_expand = QAction(IconFactory.get("expand"), "Expand", self)
+        a_collapse = QAction(IconFactory.get("collapse"), "Collapse", self)
+        a_add = QAction(IconFactory.get("add"), "Add Item…", self)
+        a_edit = QAction(IconFactory.get("edit"), "Edit Category…", self)
+        a_props = QAction(IconFactory.get("properties"), "Properties…", self)
         menu.addSeparator()
-        a_delete    = QAction(IconFactory.get("delete"),     "Delete Category", self)
+        a_delete = QAction(IconFactory.get("delete"), "Delete Category", self)
 
-        a_expand.triggered.connect(
-            lambda: self._tree.expand(self._index_for(node)))
-        a_collapse.triggered.connect(
-            lambda: self._tree.collapse(self._index_for(node)))
-        a_add.triggered.connect(
-            lambda: self._vm.trigger_action("add_child", node))
-        a_edit.triggered.connect(
-            lambda: self._vm.trigger_action("edit", node))
-        a_props.triggered.connect(
-            lambda: self._vm.trigger_action("properties", node))
-        a_delete.triggered.connect(
-            lambda: self._vm.trigger_action("delete", node))
+        a_expand.triggered.connect(lambda: self._tree.expand(self._index_for(node)))
+        a_collapse.triggered.connect(lambda: self._tree.collapse(self._index_for(node)))
+        a_add.triggered.connect(lambda: self._vm.trigger_action("add_child", node))
+        a_edit.triggered.connect(lambda: self._vm.trigger_action("edit", node))
+        a_props.triggered.connect(lambda: self._vm.trigger_action("properties", node))
+        a_delete.triggered.connect(lambda: self._vm.trigger_action("delete", node))
 
-        for action in (a_expand, a_collapse, a_add, a_edit, a_props,
-                       menu.addSeparator(), a_delete):
+        for action in (a_expand, a_collapse, a_add, a_edit, a_props, menu.addSeparator(), a_delete):
             if isinstance(action, QAction):
                 menu.addAction(action)
 
@@ -1151,23 +1301,20 @@ class MainWindow(QMainWindow):
 
         # Header label
         icon_map = {
-            "active":   "item",
-            "warning":  "item_warning",
-            "error":    "item_error",
+            "active": "item",
+            "warning": "item_warning",
+            "error": "item_error",
             "disabled": "item_disabled",
         }
-        header = QAction(
-            IconFactory.get(icon_map.get(node.status, "item")),
-            f"  {node.name}", self
-        )
+        header = QAction(IconFactory.get(icon_map.get(node.status, "item")), f"  {node.name}", self)
         header.setEnabled(False)
         menu.addAction(header)
         menu.addSeparator()
 
         # Default action (same as double-click) — visually marked
-        a_edit   = QAction(IconFactory.get("edit"),       "✎  Edit…  (default)", self)
-        a_props  = QAction(IconFactory.get("properties"), "Properties…",          self)
-        a_info   = QAction(IconFactory.get("info"),       "View Description…",    self)
+        a_edit = QAction(IconFactory.get("edit"), "✎  Edit…  (default)", self)
+        a_props = QAction(IconFactory.get("properties"), "Properties…", self)
+        a_info = QAction(IconFactory.get("info"), "View Description…", self)
         menu.addSeparator()
 
         # Status change submenu
@@ -1185,14 +1332,10 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
         a_delete = QAction(IconFactory.get("delete"), "Delete Item", self)
 
-        a_edit.triggered.connect(
-            lambda: self._vm.trigger_action("edit", node))
-        a_props.triggered.connect(
-            lambda: self._vm.trigger_action("properties", node))
-        a_info.triggered.connect(
-            lambda: self._vm.trigger_action("open", node))
-        a_delete.triggered.connect(
-            lambda: self._vm.trigger_action("delete", node))
+        a_edit.triggered.connect(lambda: self._vm.trigger_action("edit", node))
+        a_props.triggered.connect(lambda: self._vm.trigger_action("properties", node))
+        a_info.triggered.connect(lambda: self._vm.trigger_action("open", node))
+        a_delete.triggered.connect(lambda: self._vm.trigger_action("delete", node))
 
         for action in (a_edit, a_props, a_info, a_delete):
             menu.addAction(action)
@@ -1217,8 +1360,9 @@ class MainWindow(QMainWindow):
 
         elif action == "open":
             QMessageBox.information(
-                self, f"Description — {node.name}",
-                f"<b>{node.name}</b><br><br>{node.description or '(no description)'}"
+                self,
+                f"Description — {node.name}",
+                f"<b>{node.name}</b><br><br>{node.description or '(no description)'}",
             )
 
         elif action == "add_child":
@@ -1236,7 +1380,8 @@ class MainWindow(QMainWindow):
         elif action == "delete":
             kind_word = "category and all its items" if node.kind == NodeKind.CATEGORY else "item"
             reply = QMessageBox.question(
-                self, "Confirm Delete",
+                self,
+                "Confirm Delete",
                 f"Delete {kind_word} '{node.name}'?",
                 QMessageBox.Yes | QMessageBox.No,
             )
@@ -1250,8 +1395,7 @@ class MainWindow(QMainWindow):
     def _toolbar_add(self):
         node = self._current_node()
         if node is None:
-            QMessageBox.information(self, "No Selection",
-                                    "Select a category to add an item to.")
+            QMessageBox.information(self, "No Selection", "Select a category to add an item to.")
             return
         target = node if node.kind == NodeKind.CATEGORY else node.parent
         if target is None:
@@ -1281,7 +1425,7 @@ class MainWindow(QMainWindow):
     def _on_load_finished(self):
         self._btn_load.setEnabled(True)
         self._btn_load.setText("Reload from DB")
-        self._tree.expandToDepth(0)   # expand categories only
+        self._tree.expandToDepth(0)  # expand categories only
 
     def _on_status(self, msg: str):
         self._sb.showMessage(msg)

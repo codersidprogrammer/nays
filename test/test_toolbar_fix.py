@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """Quick test for toolbar functionality"""
 
-from nays.ui.handler import createTableEditor
-from PySide6.QtWidgets import QApplication
 import sys
+
+from PySide6.QtWidgets import QApplication
+
+from nays.ui.handler import createTableEditor
 
 app = QApplication(sys.argv)
 
 # Create test editor with some data
 editor = createTableEditor(
-    headers=['Name', 'Age', 'Active'],
+    headers=["Name", "Age", "Active"],
     data=[
-        {'Name': 'Alice', 'Age': 28, 'Active': True},
-        {'Name': 'Bob', 'Age': 35, 'Active': False},
+        {"Name": "Alice", "Age": 28, "Active": True},
+        {"Name": "Bob", "Age": 35, "Active": False},
     ],
-    column_types={'Active': 'checkbox'}
+    column_types={"Active": "checkbox"},
 )
 
 # Test toolbar actions work without errors

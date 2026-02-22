@@ -39,26 +39,29 @@ Quick-start
     handler.onActionTriggered("edit",   lambda data: ...)
     handler.onSelectionChanged(lambda data: ...)
 """
+
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import (
-    Qt, Signal, QObject, QModelIndex, QAbstractItemModel, QSize, QPoint
-)
+from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, QPoint, QSize, Qt, Signal
 from PySide6.QtGui import (
-    QColor, QPainter, QPixmap, QIcon,
-    QPen, QBrush, QFont, QPainterPath, QAction
+    QAction,
+    QBrush,
+    QColor,
+    QFont,
+    QIcon,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
 )
-from PySide6.QtWidgets import (
-    QTreeView, QMenu, QAbstractItemView, QHeaderView, QApplication
-)
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QMenu, QTreeView
 
 from nays.ui.helper import main_icons  # noqa: F401 — registers Qt resources
 from nays.ui.helper.icon_helper import getIconFromResource
-
 
 # ═══════════════════════════════════════════════════════════
 # CONTEXT MENU ICON MAPPING
@@ -66,23 +69,24 @@ from nays.ui.helper.icon_helper import getIconFromResource
 
 # Map icon name strings → Qt resource paths for context menu actions
 _CONTEXT_MENU_ICON_MAP = {
-    "edit":       ":/16/fugue-icons/icons/pencil.png",
-    "delete":     ":/16/fugue-icons/icons/bin.png",
-    "add":        ":/16/fugue-icons/icons/plus.png",
-    "remove":     ":/16/fugue-icons/icons/minus.png",
+    "edit": ":/16/fugue-icons/icons/pencil.png",
+    "delete": ":/16/fugue-icons/icons/bin.png",
+    "add": ":/16/fugue-icons/icons/plus.png",
+    "remove": ":/16/fugue-icons/icons/minus.png",
     "properties": ":/16/fugue-icons/icons/property.png",
-    "expand":     ":/16/fugue-icons/icons/folder-open.png",
-    "collapse":   ":/16/fugue-icons/icons/folder.png",
-    "refresh":    ":/16/fugue-icons/icons/arrow-circle.png",
-    "info":       ":/16/fugue-icons/icons/information.png",
-    "search":     ":/16/fugue-icons/icons/magnifier.png",
-    "loading":    ":/16/fugue-icons/icons/arrow-circle.png",
+    "expand": ":/16/fugue-icons/icons/folder-open.png",
+    "collapse": ":/16/fugue-icons/icons/folder.png",
+    "refresh": ":/16/fugue-icons/icons/arrow-circle.png",
+    "info": ":/16/fugue-icons/icons/information.png",
+    "search": ":/16/fugue-icons/icons/magnifier.png",
+    "loading": ":/16/fugue-icons/icons/arrow-circle.png",
 }
 
 
 # ═══════════════════════════════════════════════════════════
 # INTERNAL: Icon Factory
 # ═══════════════════════════════════════════════════════════
+
 
 class _IconFactory:
     """Paints QIcon objects on-the-fly — no external image files needed."""
@@ -100,24 +104,24 @@ class _IconFactory:
     def _make(cls, name: str, size: int) -> QIcon:
         px = QPixmap(size, size)
         px.fill(Qt.transparent)
-        p  = QPainter(px)
+        p = QPainter(px)
         p.setRenderHint(QPainter.Antialiasing)
         dispatch = {
-            "folder":        cls._folder,
-            "folder_open":   cls._folder_open,
-            "item":          cls._item,
-            "item_warning":  cls._item_warning,
-            "item_error":    cls._item_error,
+            "folder": cls._folder,
+            "folder_open": cls._folder_open,
+            "item": cls._item,
+            "item_warning": cls._item_warning,
+            "item_error": cls._item_error,
             "item_disabled": cls._item_disabled,
-            "loading":       cls._loading,
-            "add":           cls._add,
-            "delete":        cls._delete,
-            "edit":          cls._edit,
-            "refresh":       cls._refresh,
-            "expand":        cls._expand,
-            "collapse":      cls._collapse,
-            "info":          cls._info,
-            "properties":    cls._properties,
+            "loading": cls._loading,
+            "add": cls._add,
+            "delete": cls._delete,
+            "edit": cls._edit,
+            "refresh": cls._refresh,
+            "expand": cls._expand,
+            "collapse": cls._collapse,
+            "info": cls._info,
+            "properties": cls._properties,
         }
         dispatch.get(name, cls._unknown)(p, size)
         p.end()
@@ -125,126 +129,189 @@ class _IconFactory:
 
     @staticmethod
     def _folder(p, s):
-        p.setBrush(QColor("#f0ad4e")); p.setPen(QPen(QColor("#c87f0a"), 1))
+        p.setBrush(QColor("#f0ad4e"))
+        p.setPen(QPen(QColor("#c87f0a"), 1))
         path = QPainterPath()
-        path.moveTo(1, s*0.45); path.lineTo(1, s*0.9); path.lineTo(s-1, s*0.9)
-        path.lineTo(s-1, s*0.35); path.lineTo(s*0.55, s*0.35)
-        path.lineTo(s*0.45, s*0.2); path.lineTo(s*0.1, s*0.2)
-        path.lineTo(s*0.1, s*0.45); path.closeSubpath(); p.drawPath(path)
+        path.moveTo(1, s * 0.45)
+        path.lineTo(1, s * 0.9)
+        path.lineTo(s - 1, s * 0.9)
+        path.lineTo(s - 1, s * 0.35)
+        path.lineTo(s * 0.55, s * 0.35)
+        path.lineTo(s * 0.45, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.45)
+        path.closeSubpath()
+        p.drawPath(path)
 
     @staticmethod
     def _folder_open(p, s):
-        p.setBrush(QColor("#ffd080")); p.setPen(QPen(QColor("#c87f0a"), 1))
+        p.setBrush(QColor("#ffd080"))
+        p.setPen(QPen(QColor("#c87f0a"), 1))
         path = QPainterPath()
-        path.moveTo(1, s*0.9); path.lineTo(s*0.15, s*0.45); path.lineTo(s-1, s*0.45)
-        path.lineTo(s-1, s*0.35); path.lineTo(s*0.55, s*0.35)
-        path.lineTo(s*0.45, s*0.2); path.lineTo(s*0.1, s*0.2)
-        path.lineTo(s*0.1, s*0.45); path.lineTo(1, s*0.45)
-        path.closeSubpath(); p.drawPath(path)
+        path.moveTo(1, s * 0.9)
+        path.lineTo(s * 0.15, s * 0.45)
+        path.lineTo(s - 1, s * 0.45)
+        path.lineTo(s - 1, s * 0.35)
+        path.lineTo(s * 0.55, s * 0.35)
+        path.lineTo(s * 0.45, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.2)
+        path.lineTo(s * 0.1, s * 0.45)
+        path.lineTo(1, s * 0.45)
+        path.closeSubpath()
+        p.drawPath(path)
 
     @staticmethod
     def _item(p, s):
-        p.setBrush(QColor("#5b9bd5")); p.setPen(QPen(QColor("#2e6da4"), 1))
-        p.drawRoundedRect(2, 2, s-4, s-4, 2, 2)
+        p.setBrush(QColor("#5b9bd5"))
+        p.setPen(QPen(QColor("#2e6da4"), 1))
+        p.drawRoundedRect(2, 2, s - 4, s - 4, 2, 2)
         p.setPen(QPen(QColor("#ffffff"), 1.2))
-        m = s // 4; p.drawLine(m, s//2, s-m, s//2); p.drawLine(s//2, m, s//2, s-m)
+        m = s // 4
+        p.drawLine(m, s // 2, s - m, s // 2)
+        p.drawLine(s // 2, m, s // 2, s - m)
 
     @staticmethod
     def _item_warning(p, s):
-        p.setBrush(QColor("#f0ad4e")); p.setPen(QPen(QColor("#c87f0a"), 1))
+        p.setBrush(QColor("#f0ad4e"))
+        p.setPen(QPen(QColor("#c87f0a"), 1))
         from PySide6.QtCore import QPoint
-        p.drawPolygon([QPoint(s//2, 1), QPoint(s-1, s-2), QPoint(1, s-2)])
+
+        p.drawPolygon([QPoint(s // 2, 1), QPoint(s - 1, s - 2), QPoint(1, s - 2)])
         p.setPen(QPen(QColor("#7a4800"), 1.5))
-        p.drawLine(s//2, s//3, s//2, s*2//3); p.drawPoint(s//2, s*3//4)
+        p.drawLine(s // 2, s // 3, s // 2, s * 2 // 3)
+        p.drawPoint(s // 2, s * 3 // 4)
 
     @staticmethod
     def _item_error(p, s):
-        p.setBrush(QColor("#d9534f")); p.setPen(QPen(QColor("#8b1a18"), 1))
-        p.drawEllipse(1, 1, s-2, s-2)
+        p.setBrush(QColor("#d9534f"))
+        p.setPen(QPen(QColor("#8b1a18"), 1))
+        p.drawEllipse(1, 1, s - 2, s - 2)
         p.setPen(QPen(QColor("#ffffff"), 1.8))
-        m = s // 3; p.drawLine(m, m, s-m, s-m); p.drawLine(s-m, m, m, s-m)
+        m = s // 3
+        p.drawLine(m, m, s - m, s - m)
+        p.drawLine(s - m, m, m, s - m)
 
     @staticmethod
     def _item_disabled(p, s):
-        p.setBrush(QColor("#aaaaaa")); p.setPen(QPen(QColor("#777777"), 1))
-        p.drawRoundedRect(2, 2, s-4, s-4, 2, 2)
+        p.setBrush(QColor("#aaaaaa"))
+        p.setPen(QPen(QColor("#777777"), 1))
+        p.drawRoundedRect(2, 2, s - 4, s - 4, 2, 2)
 
     @staticmethod
     def _loading(p, s):
         p.setBrush(Qt.NoBrush)
         for i in range(8):
-            angle = i * 45; rad = math.radians(angle); alpha = 40 + int(215 * i / 7)
+            angle = i * 45
+            rad = math.radians(angle)
+            alpha = 40 + int(215 * i / 7)
             p.setPen(QPen(QColor(80, 80, 200, alpha), 1.5))
-            cx, cy, r = s/2, s/2, s/2 - 2
+            cx, cy, r = s / 2, s / 2, s / 2 - 2
             p.drawLine(
-                int(cx + r*0.5*math.cos(rad)), int(cy + r*0.5*math.sin(rad)),
-                int(cx + r*math.cos(rad)),     int(cy + r*math.sin(rad)),
+                int(cx + r * 0.5 * math.cos(rad)),
+                int(cy + r * 0.5 * math.sin(rad)),
+                int(cx + r * math.cos(rad)),
+                int(cy + r * math.sin(rad)),
             )
 
     @staticmethod
     def _add(p, s):
-        p.setBrush(QColor("#5cb85c")); p.setPen(QPen(QColor("#3d8b3d"), 1))
-        p.drawEllipse(1, 1, s-2, s-2)
+        p.setBrush(QColor("#5cb85c"))
+        p.setPen(QPen(QColor("#3d8b3d"), 1))
+        p.drawEllipse(1, 1, s - 2, s - 2)
         p.setPen(QPen(QColor("#ffffff"), 2))
-        m = s // 4; p.drawLine(s//2, m, s//2, s-m); p.drawLine(m, s//2, s-m, s//2)
+        m = s // 4
+        p.drawLine(s // 2, m, s // 2, s - m)
+        p.drawLine(m, s // 2, s - m, s // 2)
 
     @staticmethod
     def _delete(p, s):
-        p.setBrush(QColor("#d9534f")); p.setPen(QPen(QColor("#8b1a18"), 1))
-        p.drawRoundedRect(1, 1, s-2, s-2, 2, 2)
+        p.setBrush(QColor("#d9534f"))
+        p.setPen(QPen(QColor("#8b1a18"), 1))
+        p.drawRoundedRect(1, 1, s - 2, s - 2, 2, 2)
         p.setPen(QPen(QColor("#ffffff"), 2))
-        m = s // 4; p.drawLine(m, m, s-m, s-m); p.drawLine(s-m, m, m, s-m)
+        m = s // 4
+        p.drawLine(m, m, s - m, s - m)
+        p.drawLine(s - m, m, m, s - m)
 
     @staticmethod
     def _edit(p, s):
-        p.setBrush(QColor("#5b9bd5")); p.setPen(QPen(QColor("#2e6da4"), 1))
+        p.setBrush(QColor("#5b9bd5"))
+        p.setPen(QPen(QColor("#2e6da4"), 1))
         path = QPainterPath()
-        path.moveTo(s*0.7, s*0.1); path.lineTo(s*0.9, s*0.3)
-        path.lineTo(s*0.3, s*0.9); path.lineTo(s*0.1, s*0.9)
-        path.lineTo(s*0.1, s*0.7); path.closeSubpath(); p.drawPath(path)
+        path.moveTo(s * 0.7, s * 0.1)
+        path.lineTo(s * 0.9, s * 0.3)
+        path.lineTo(s * 0.3, s * 0.9)
+        path.lineTo(s * 0.1, s * 0.9)
+        path.lineTo(s * 0.1, s * 0.7)
+        path.closeSubpath()
+        p.drawPath(path)
 
     @staticmethod
     def _refresh(p, s):
-        p.setBrush(Qt.NoBrush); p.setPen(QPen(QColor("#0078d7"), 2))
-        p.drawArc(2, 2, s-4, s-4, 30*16, 300*16)
-        p.setBrush(QColor("#0078d7")); p.setPen(Qt.NoPen)
-        angle = math.radians(30); cx, cy, r = s/2, s/2, s/2-2
-        ax = cx + r*math.cos(angle); ay = cy - r*math.sin(angle)
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(QColor("#0078d7"), 2))
+        p.drawArc(2, 2, s - 4, s - 4, 30 * 16, 300 * 16)
+        p.setBrush(QColor("#0078d7"))
+        p.setPen(Qt.NoPen)
+        angle = math.radians(30)
+        cx, cy, r = s / 2, s / 2, s / 2 - 2
+        ax = cx + r * math.cos(angle)
+        ay = cy - r * math.sin(angle)
         from PySide6.QtCore import QPoint
-        p.drawPolygon([QPoint(int(ax), int(ay)-3), QPoint(int(ax)+4, int(ay)+2), QPoint(int(ax)-2, int(ay)+3)])
+
+        p.drawPolygon(
+            [
+                QPoint(int(ax), int(ay) - 3),
+                QPoint(int(ax) + 4, int(ay) + 2),
+                QPoint(int(ax) - 2, int(ay) + 3),
+            ]
+        )
 
     @staticmethod
     def _expand(p, s):
-        p.setBrush(QColor("#e1e1e1")); p.setPen(QPen(QColor("#adadad"), 1))
-        p.drawRect(1, 1, s-2, s-2); p.setPen(QPen(QColor("#000"), 1.5))
-        m = s // 4; p.drawLine(m, s//2, s-m, s//2); p.drawLine(s//2, m, s//2, s-m)
+        p.setBrush(QColor("#e1e1e1"))
+        p.setPen(QPen(QColor("#adadad"), 1))
+        p.drawRect(1, 1, s - 2, s - 2)
+        p.setPen(QPen(QColor("#000"), 1.5))
+        m = s // 4
+        p.drawLine(m, s // 2, s - m, s // 2)
+        p.drawLine(s // 2, m, s // 2, s - m)
 
     @staticmethod
     def _collapse(p, s):
-        p.setBrush(QColor("#e1e1e1")); p.setPen(QPen(QColor("#adadad"), 1))
-        p.drawRect(1, 1, s-2, s-2); p.setPen(QPen(QColor("#000"), 1.5))
-        m = s // 4; p.drawLine(m, s//2, s-m, s//2)
+        p.setBrush(QColor("#e1e1e1"))
+        p.setPen(QPen(QColor("#adadad"), 1))
+        p.drawRect(1, 1, s - 2, s - 2)
+        p.setPen(QPen(QColor("#000"), 1.5))
+        m = s // 4
+        p.drawLine(m, s // 2, s - m, s // 2)
 
     @staticmethod
     def _info(p, s):
-        p.setBrush(QColor("#5b9bd5")); p.setPen(QPen(QColor("#2e6da4"), 1))
-        p.drawEllipse(1, 1, s-2, s-2)
-        p.setPen(QPen(Qt.white, 1.8)); p.drawText(0, 0, s, s, Qt.AlignCenter, "i")
+        p.setBrush(QColor("#5b9bd5"))
+        p.setPen(QPen(QColor("#2e6da4"), 1))
+        p.drawEllipse(1, 1, s - 2, s - 2)
+        p.setPen(QPen(Qt.white, 1.8))
+        p.drawText(0, 0, s, s, Qt.AlignCenter, "i")
 
     @staticmethod
     def _properties(p, s):
-        p.setBrush(Qt.NoBrush); p.setPen(QPen(QColor("#555"), 1.5))
-        for y in [s//4, s//2, s*3//4]: p.drawLine(3, y, s-3, y)
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(QColor("#555"), 1.5))
+        for y in [s // 4, s // 2, s * 3 // 4]:
+            p.drawLine(3, y, s - 3, y)
 
     @staticmethod
     def _unknown(p, s):
-        p.setBrush(QColor("#cccccc")); p.setPen(QPen(QColor("#999"), 1))
-        p.drawRect(1, 1, s-2, s-2)
+        p.setBrush(QColor("#cccccc"))
+        p.setPen(QPen(QColor("#999"), 1))
+        p.drawRect(1, 1, s - 2, s - 2)
 
 
 # ═══════════════════════════════════════════════════════════
 # INTERNAL: Tree Node
 # ═══════════════════════════════════════════════════════════
+
 
 @dataclass
 class _TreeNode:
@@ -252,10 +319,11 @@ class _TreeNode:
     Internal tree node wrapping the raw user data dict.
     Supports unlimited nesting depth.
     """
-    raw:      Dict[str, Any]                  # original dict from caller
-    depth:    int                             # 0 = root
-    parent:   Optional["_TreeNode"] = field(default=None, repr=False, compare=False)
-    children: List["_TreeNode"]     = field(default_factory=list)
+
+    raw: Dict[str, Any]  # original dict from caller
+    depth: int  # 0 = root
+    parent: Optional["_TreeNode"] = field(default=None, repr=False, compare=False)
+    children: List["_TreeNode"] = field(default_factory=list)
 
     # ── helpers ────────────────────────────────────────────
     def child_count(self) -> int:
@@ -283,6 +351,7 @@ class _TreeNode:
 # INTERNAL: Qt Item Model
 # ═══════════════════════════════════════════════════════════
 
+
 class _TreeItemModel(QAbstractItemModel):
     """
     Bridges a flat list of _TreeNode roots ↔ QTreeView.
@@ -299,11 +368,11 @@ class _TreeItemModel(QAbstractItemModel):
         parent=None,
     ):
         super().__init__(parent)
-        self._roots      = roots
-        self._columns    = columns   # [{"key": ..., "label": ..., ...}]
-        self._name_key   = name_key
+        self._roots = roots
+        self._columns = columns  # [{"key": ..., "label": ..., ...}]
+        self._name_key = name_key
         self._status_key = status_key
-        self._icon_key   = icon_key          # data key that holds a QIcon path/resource
+        self._icon_key = icon_key  # data key that holds a QIcon path/resource
         self._icon_path_cache: Dict[str, QIcon] = {}  # path -> QIcon cache
 
     # ── reset ──────────────────────────────────────────────
@@ -379,7 +448,9 @@ class _TreeItemModel(QAbstractItemModel):
             return self._fg_color(status)
 
         if role == Qt.FontRole and col == 0 and node.is_root:
-            f = QFont(); f.setBold(True); return f
+            f = QFont()
+            f.setBold(True)
+            return f
 
         if role == Qt.ToolTipRole:
             parts = [f"<b>{node.raw.get(self._name_key, '')}</b>"]
@@ -395,8 +466,9 @@ class _TreeItemModel(QAbstractItemModel):
 
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation,
-                   role: int = Qt.DisplayRole) -> Any:
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole
+    ) -> Any:
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section < len(self._columns):
                 return self._columns[section].get("label", self._columns[section].get("key", ""))
@@ -422,18 +494,18 @@ class _TreeItemModel(QAbstractItemModel):
         if node.children:
             return _IconFactory.get("folder")
         icon_map = {
-            "active":   "item",
-            "warning":  "item_warning",
-            "error":    "item_error",
+            "active": "item",
+            "warning": "item_warning",
+            "error": "item_error",
             "disabled": "item_disabled",
         }
         return _IconFactory.get(icon_map.get(status, "item"))
 
     def _fg_color(self, status: str) -> QColor:
         return {
-            "active":   QColor("#000000"),
-            "warning":  QColor("#8a6000"),
-            "error":    QColor("#a31515"),
+            "active": QColor("#000000"),
+            "warning": QColor("#8a6000"),
+            "error": QColor("#a31515"),
             "disabled": QColor("#909090"),
         }.get(status, QColor("#000000"))
 
@@ -447,6 +519,7 @@ class _TreeItemModel(QAbstractItemModel):
 # ═══════════════════════════════════════════════════════════
 # PUBLIC: TreeViewHandler
 # ═══════════════════════════════════════════════════════════
+
 
 class TreeViewHandler(QObject):
     """
@@ -501,10 +574,10 @@ class TreeViewHandler(QObject):
     """
 
     # Public signals
-    selectionChanged = Signal(dict)        # node raw data
-    actionTriggered  = Signal(str, dict)  # action_name, node raw data
-    doubleClicked    = Signal(dict)        # node raw data
-    dataLoaded       = Signal(int)         # total node count
+    selectionChanged = Signal(dict)  # node raw data
+    actionTriggered = Signal(str, dict)  # action_name, node raw data
+    doubleClicked = Signal(dict)  # node raw data
+    dataLoaded = Signal(int)  # total node count
 
     # ── Built-in stylesheets ───────────────────────────────
     DEFAULT_STYLE = """
@@ -583,9 +656,9 @@ class TreeViewHandler(QObject):
         self,
         treeView: QTreeView,
         childrenKey: str = "children",
-        nameKey:     str = "name",
-        statusKey:   str = "status",
-        iconKey:     Optional[str] = None,
+        nameKey: str = "name",
+        statusKey: str = "status",
+        iconKey: Optional[str] = None,
         applyDefaultStyle: bool = False,
     ):
         """
@@ -603,17 +676,17 @@ class TreeViewHandler(QObject):
         """
         super().__init__(treeView)
 
-        self._treeView    = treeView
+        self._treeView = treeView
         self._childrenKey = childrenKey
-        self._nameKey     = nameKey
-        self._statusKey   = statusKey
-        self._iconKey     = iconKey
+        self._nameKey = nameKey
+        self._statusKey = statusKey
+        self._iconKey = iconKey
 
         # Internal state
-        self._roots:          List[_TreeNode]          = []
-        self._columns:        List[Dict[str, Any]]     = [{"key": nameKey, "label": "Name"}]
-        self._contextActions: List[Dict[str, Any]]     = []
-        self._dblClickRules:  List[Dict[str, Any]]     = []   # [{"action":"...", "nodeFilter":...}]
+        self._roots: List[_TreeNode] = []
+        self._columns: List[Dict[str, Any]] = [{"key": nameKey, "label": "Name"}]
+        self._contextActions: List[Dict[str, Any]] = []
+        self._dblClickRules: List[Dict[str, Any]] = []  # [{"action":"...", "nodeFilter":...}]
         self._actionCallbacks: Dict[str, List[Callable]] = {}
 
         # Build model and wire up view
@@ -736,8 +809,8 @@ class TreeViewHandler(QObject):
         ----
         label       : str           Menu item text.
         action      : str           Name emitted in actionTriggered signal.
-        icon        : str           Icon name from Qt resources (available: "edit", 
-                                    "delete", "add", "remove", "properties", "expand", 
+        icon        : str           Icon name from Qt resources (available: "edit",
+                                    "delete", "add", "remove", "properties", "expand",
                                     "collapse", "refresh", "info", "search", "loading").
         nodeFilter  : str|callable  Visibility condition (see class docstring).
         enabled     : bool|callable If False / callable returning False, item is greyed out.
@@ -1020,7 +1093,9 @@ class TreeViewHandler(QObject):
                 act.setEnabled(bool(enabled_cfg))
 
             action_name = entry.get("action", "")
-            act.triggered.connect(lambda checked=False, a=action_name, n=node: self._dispatchAction(a, n))
+            act.triggered.connect(
+                lambda checked=False, a=action_name, n=node: self._dispatchAction(a, n)
+            )
             menu.addAction(act)
 
         menu.exec(self._treeView.viewport().mapToGlobal(pos))

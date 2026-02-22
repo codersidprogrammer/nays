@@ -3,7 +3,9 @@ Test: Verify embedded editor displays table correctly
 """
 
 import sys
+
 from PySide6.QtWidgets import QApplication, QTableView
+
 from nays.ui.handler import createTableEditorEmbedded
 
 # Create QApplication first
@@ -11,13 +13,14 @@ app = QApplication(sys.argv)
 
 # Sample config data
 config_data = [
-    {'name': 'IPOLY', 'description': 'Polynomial Order', 'type': 'combobox'},
-    {'name': 'IOPT', 'description': 'Option Flag', 'type': 'checkbox'},
-    {'name': 'GLEN', 'description': 'Length', 'type': 'text'},
+    {"name": "IPOLY", "description": "Polynomial Order", "type": "combobox"},
+    {"name": "IOPT", "description": "Option Flag", "type": "checkbox"},
+    {"name": "GLEN", "description": "Length", "type": "text"},
 ]
 
 # Headers
 headers = ["ID", "GLEN", "IOPT", "Material Id", "Set As Output", "IPOLY Usage"]
+
 
 # Callbacks
 def on_save(data):
@@ -27,8 +30,10 @@ def on_save(data):
     print(f"   Headers: {data['headers']}")
     print(f"   Data: {data['dict']}")
 
+
 def on_cancel():
     print("\n❌ Edit cancelled")
+
 
 # Test the embedded editor
 print("Creating embedded editor...")
@@ -40,7 +45,7 @@ editor = createTableEditorEmbedded(
     on_save=on_save,
     on_cancel=on_cancel,
     apply_dark_style=True,
-    combo_display_mode="both"
+    combo_display_mode="both",
 )
 
 print("✓ Editor created successfully")
@@ -56,7 +61,7 @@ print(f"✓ Table model: {editor.tableView.model()}")
 if editor.tableView.model():
     print(f"✓ Row count in model: {editor.tableView.model().rowCount()}")
     print(f"✓ Column count in model: {editor.tableView.model().columnCount()}")
-    
+
     # Print the data
     if editor.handler:
         data = editor.handler.getData()

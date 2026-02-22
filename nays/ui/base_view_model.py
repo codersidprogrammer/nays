@@ -1,10 +1,9 @@
 import inspect
 import logging
-
-from PySide6.QtCore import QObject, Signal,SignalInstance
 from typing import Callable, Dict, List, Optional
 
 from colorama import Fore, Style
+from PySide6.QtCore import QObject, Signal, SignalInstance
 
 from nays.core.logger import setupLogger
 
@@ -15,7 +14,7 @@ class BaseViewModel(QObject):
         self._bindings: Dict[SignalInstance, List[Callable]] = {}
         self._auto_bind_methods()
         self.logger = setupLogger(self.__class__.__name__)
-    
+
     def bind(self, signal: SignalInstance, callback: Callable):
         try:
             signal.connect(callback)
@@ -23,7 +22,7 @@ class BaseViewModel(QObject):
             self.logger.debug(f"Bound {callback} to {signal}")
         except Exception as e:
             self.logger.warning(f"Failed to bind {callback} to {signal}: {e}")
-            
+
     def unbind(self, signal: SignalInstance, callback: Optional[Callable] = None):
         if signal in self._bindings:
             callbacks = self._bindings[signal]
@@ -40,7 +39,7 @@ class BaseViewModel(QObject):
                     except Exception as e:
                         self.logger.warning(f"Failed to unbind {cb} from {signal}: {e}")
                 self._bindings[signal] = []
-                
+
     def unbind_all(self):
         for signal, callbacks in self._bindings.items():
             for cb in callbacks:
@@ -49,10 +48,11 @@ class BaseViewModel(QObject):
                 except Exception as e:
                     self.logger.warning(f"Failed to unbind {cb} from {signal}: {e}")
         self._bindings.clear()
-        
+
     def get_signals(self) -> Dict[str, Signal]:
         return {
-            name: attr for name, attr in inspect.getmembers(self.__class__)
+            name: attr
+            for name, attr in inspect.getmembers(self.__class__)
             if isinstance(attr, Signal)
         }
 

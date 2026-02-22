@@ -1,6 +1,8 @@
 import json
 import os
+
 from PySide6.QtCore import QTemporaryDir, QTemporaryFile
+
 
 class TemporaryHandler:
     _instance = None  # This will hold the singleton instance
@@ -48,8 +50,8 @@ class TemporaryHandler:
             return tempFile.fileName()
         else:
             raise Exception("Failed to create temporary file")
-        
-    def createTempJsonFile(self,filename="temp_file_", data=None):
+
+    def createTempJsonFile(self, filename="temp_file_", data=None):
         """Create a temporary file inside the temporary directory and write JSON data."""
         # If data is not passed, use default empty dictionary
         if data is None:
@@ -64,7 +66,7 @@ class TemporaryHandler:
 
         # Open the file and write the serialized JSON data
         if tempFile.open():
-            tempFile.write(json_data.encode('utf-8'))  # Write the encoded JSON data (as bytes)
+            tempFile.write(json_data.encode("utf-8"))  # Write the encoded JSON data (as bytes)
             print(f"Temporary JSON file created at: {tempFile.fileName()}")
             tempFile.close()
             return tempFile.fileName()
@@ -78,7 +80,7 @@ class TemporaryHandler:
     def readFileContent(self, filePath):
         """Read the content of the file and return it."""
         try:
-            with open(filePath, 'rb') as file:
+            with open(filePath, "rb") as file:
                 return file.read()
         except Exception as e:
             print(f"Error reading file: {e}")

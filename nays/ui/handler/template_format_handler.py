@@ -1,5 +1,5 @@
-
 import numpy as np
+
 
 def format_float_sci(value):
     """
@@ -13,7 +13,8 @@ def format_float_sci(value):
     """
     return f"{value:.4E}"
 
-def format_float_sci_spec(value, format_spec='%.4E'):
+
+def format_float_sci_spec(value, format_spec="%.4E"):
     """
     Formats a single float value in scientific notation with 4 decimal places.
 
@@ -24,6 +25,7 @@ def format_float_sci_spec(value, format_spec='%.4E'):
         str: Formatted string in scientific notation (e.g., 1.2345E+03).
     """
     return format_spec % value
+
 
 def format_whitespace(value, width=8):
     """
@@ -38,10 +40,11 @@ def format_whitespace(value, width=8):
     """
     return str(value).rjust(width)
 
+
 def format_array(arr):
     """
     Formats a NumPy array into a space-separated string.
-    
+
     - Floats are formatted to 3 decimal places.
     - Integers are converted to string directly.
 
@@ -56,7 +59,8 @@ def format_array(arr):
         return "         ".join([f"{v:.3f}" for v in arr.flatten()])
     else:
         return "         ".join([str(v) for v in arr.flatten()])
-    
+
+
 def format_array_as_int(arr):
     """
     Converts a NumPy array to integers and formats it into a space-separated string.
@@ -74,12 +78,14 @@ def format_array_as_int(arr):
     arr_int = arr.astype(int)  # Convert all elements to integers
     return "         ".join([str(v) for v in arr_int.flatten()])
 
-def format_array_as_int_spec(arr, format_spec='%d'):
+
+def format_array_as_int_spec(arr, format_spec="%d"):
     arr = np.asarray(arr)  # Ensure input is an ndarray
     arr_int = arr.astype(int)  # Convert all elements to integers
     return " ".join([format_spec % v for v in arr_int.flatten()])
 
-def format_array_as_float_spec(arr, format_spec='%.3f'):
+
+def format_array_as_float_spec(arr, format_spec="%.3f"):
     arr = np.asarray(arr)  # Ensure input is an ndarray
     arr_float = arr.astype(float)  # Convert all elements to floats
     return " ".join([format_spec % v for v in arr_float.flatten()])
@@ -146,20 +152,23 @@ def format_matrix_sci(matrix, format_spec=True):
     lines = []
     for row in matrix:
         if format_spec:
-            formatted_row = "".join(("  " if f"{v:.4E}".startswith("-") else "   ") + f"{v:.4E}" for v in row)
+            formatted_row = "".join(
+                ("  " if f"{v:.4E}".startswith("-") else "   ") + f"{v:.4E}" for v in row
+            )
         else:
             formatted_row = "   ".join(str(v) for v in row)
         lines.append(formatted_row)
     return "\n".join(lines)
 
-def format_matrix_sci_spec(matrix, format_spec='%.4E'):
+
+def format_matrix_sci_spec(matrix, format_spec="%.4E"):
     """
     Formats a 2D NumPy array (matrix) into a multi-line string with custom format specification.
-    
+
     Parameters:
         matrix (np.ndarray): A 2D NumPy array to format.
         format_spec (str): Format specification string (default is '%.4E').
-    
+
     Returns:
         str: A multi-line string where each line represents a formatted matrix row.
     """
@@ -171,10 +180,11 @@ def format_matrix_sci_spec(matrix, format_spec='%.4E'):
         lines.append(formatted_row)
     return "\n".join(lines)
 
-def format_array_sci_spec(arr, format_spec='%.4E'):
+
+def format_array_sci_spec(arr, format_spec="%.4E"):
     """
     Universal array formatter supporting multiple format types
-    
+
     Parameters:
         arr: NumPy array or list
         format_spec: Format string
@@ -182,7 +192,7 @@ def format_array_sci_spec(arr, format_spec='%.4E'):
             - Scientific: '%.4E', '%12.3E', '%-15.4e'
             - Integer: '%6d', '%8d'
             - General: '%g', '%10g'
-    
+
     Returns:
         str: Formatted string with values separated by spaces
     """

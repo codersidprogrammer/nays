@@ -1,5 +1,7 @@
 from collections import deque
-from PySide6.QtCore import QObject, QThread, Signal, Slot, QProcess
+
+from PySide6.QtCore import QObject, QProcess, QThread, Signal, Slot
+
 
 class ProcessHandler(QObject):
     output_ready = Signal(str)
@@ -20,7 +22,7 @@ class ProcessHandler(QObject):
         self._commands = deque()  # Command queue
         if workingDir:
             self.process.setWorkingDirectory(workingDir)
-            
+
     def setWorkingDirectory(self, path: str):
         self.process.setWorkingDirectory(path)
 
@@ -47,7 +49,7 @@ class ProcessHandler(QObject):
             if not self.process.waitForFinished(3000):
                 self.process.kill()
         self._commands.clear()
-    
+
     def write_input(self, text: str):
         """Write input to the running process (for interactive processes)"""
         if self.process.state() == QProcess.Running:

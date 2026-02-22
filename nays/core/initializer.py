@@ -1,6 +1,8 @@
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+
 import yaml
+
 
 @dataclass
 class YamlConfigModel:
@@ -10,46 +12,51 @@ class YamlConfigModel:
     defaultValueIndex: int
     items: list
 
+
 class YamlConfigLoader:
     """
     A class to load YAML configuration files.
     This class is designed to be used as a singleton.
     """
-    
+
     def __init__(self):
         self.config_path = None
         self._data = None
         self._currentData: dict | list = None
         self.__base_dir = os.path.dirname(os.path.abspath(__file__))
         # self.load_yaml()
-        
+
     def setBaseDir(self, base_dir: str):
         self.__base_dir = base_dir
-        
+
     def setConfigPath(self, config_path: str):
         self.config_path = os.path.join(self.__base_dir, config_path)
 
     def load_yaml(self):
-        full_path = self.config_path if self.config_path is not None else os.path.join(self.__base_dir, "config.yml")
+        full_path = (
+            self.config_path
+            if self.config_path is not None
+            else os.path.join(self.__base_dir, "config.yml")
+        )
 
         if not os.path.exists(full_path):
             raise FileNotFoundError(f"YAML config file not found: {full_path}")
 
         with open(full_path, "r") as file:
             self._data = yaml.safe_load(file)
-            
+
     def getGroup(self, group: str):
         """Return the whole group dictionary/list."""
         self._currentData = self._data.get(group, None)
         return self
-    
+
     def getSubgroup(self, subgroup: str):
         """Return the subgroup (list or dict) inside a group."""
         if self._currentData is None:
             return None
         self._currentData = self._currentData.get(subgroup, None)
         return self
-    
+
     def filter(self, key: str, value: any):
         """
         Filter the current data by a key-value pair.
@@ -62,7 +69,7 @@ class YamlConfigLoader:
         elif isinstance(self._currentData, dict):
             self._currentData = {k: v for k, v in self._currentData.items() if v.get(key) == value}
         return self
-    
+
     def get(self, isFirst: bool = None) -> dict | list:
         if isFirst is not None:
             if isinstance(self._currentData, list):
@@ -71,8 +78,8 @@ class YamlConfigLoader:
                 elif not isFirst and len(self._currentData) > 1:
                     return self._currentData[1:]
             return self._currentData
-        return self._currentData    
-    
+        return self._currentData
+
 
 class YamlInitializer:
     _instance = None  # Singleton instance
@@ -113,18 +120,18 @@ class YamlInitializer:
         if subgroup:
             data = self.get_subgroup(group, subgroup)
         else:
-            data = self.get_subgroup(group, 'component')
+            data = self.get_subgroup(group, "component")
         if data is None:
             return []
         if name:
             for entry in data:
-                if entry.get('name') == name:
-                    return entry.get('items', [])
+                if entry.get("name") == name:
+                    return entry.get("items", [])
             return []
         # If no name, return all items in all entries
         items = []
         for entry in data:
-            items.extend(entry.get('items', []))
+            items.extend(entry.get("items", []))
         return items
 
     def get_value(self, group: str, subgroup: str, name: str):
@@ -135,7 +142,7 @@ class YamlInitializer:
         if data is None:
             return None
         for entry in data:
-            if entry.get('name') == name:
+            if entry.get("name") == name:
                 return entry
         return None
 

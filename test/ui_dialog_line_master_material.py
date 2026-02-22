@@ -8,40 +8,77 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
-    QHBoxLayout, QHeaderView, QSizePolicy, QTableWidget,
-    QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
-    QWidget)
+from PySide6.QtCore import (
+    QCoreApplication,
+    QDate,
+    QDateTime,
+    QLocale,
+    QMetaObject,
+    QObject,
+    QPoint,
+    QRect,
+    QSize,
+    Qt,
+    QTime,
+    QUrl,
+)
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QConicalGradient,
+    QCursor,
+    QFont,
+    QFontDatabase,
+    QGradient,
+    QIcon,
+    QImage,
+    QKeySequence,
+    QLinearGradient,
+    QPainter,
+    QPalette,
+    QPixmap,
+    QRadialGradient,
+    QTransform,
+)
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QApplication,
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QHeaderView,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
 
 class Ui_MasterMaterial(object):
     def setupUi(self, MasterMaterial):
         if not MasterMaterial.objectName():
-            MasterMaterial.setObjectName(u"MasterMaterial")
+            MasterMaterial.setObjectName("MasterMaterial")
         MasterMaterial.resize(1041, 480)
         self.verticalLayout = QVBoxLayout(MasterMaterial)
-        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setObjectName("verticalLayout")
         self.widget = QWidget(MasterMaterial)
-        self.widget.setObjectName(u"widget")
+        self.widget.setObjectName("widget")
         self.horizontalLayout = QHBoxLayout(self.widget)
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setObjectName("horizontalLayout")
         self.treeMaterial = QTreeWidget(self.widget)
-        self.treeMaterial.setObjectName(u"treeMaterial")
+        self.treeMaterial.setObjectName("treeMaterial")
 
         self.horizontalLayout.addWidget(self.treeMaterial, 0, Qt.AlignmentFlag.AlignLeft)
 
         self.tableDetail = QTableWidget(self.widget)
-        if (self.tableDetail.columnCount() < 1):
+        if self.tableDetail.columnCount() < 1:
             self.tableDetail.setColumnCount(1)
         __qtablewidgetitem = QTableWidgetItem()
         self.tableDetail.setHorizontalHeaderItem(0, __qtablewidgetitem)
-        if (self.tableDetail.rowCount() < 15):
+        if self.tableDetail.rowCount() < 15:
             self.tableDetail.setRowCount(15)
         __qtablewidgetitem1 = QTableWidgetItem()
         self.tableDetail.setVerticalHeaderItem(0, __qtablewidgetitem1)
@@ -73,63 +110,90 @@ class Ui_MasterMaterial(object):
         self.tableDetail.setVerticalHeaderItem(13, __qtablewidgetitem14)
         __qtablewidgetitem15 = QTableWidgetItem()
         self.tableDetail.setVerticalHeaderItem(14, __qtablewidgetitem15)
-        self.tableDetail.setObjectName(u"tableDetail")
+        self.tableDetail.setObjectName("tableDetail")
 
         self.horizontalLayout.addWidget(self.tableDetail)
-
 
         self.verticalLayout.addWidget(self.widget)
 
         self.buttonBox = QDialogButtonBox(MasterMaterial)
-        self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setObjectName("buttonBox")
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Ok)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok
+        )
 
         self.verticalLayout.addWidget(self.buttonBox)
-
 
         self.retranslateUi(MasterMaterial)
         self.buttonBox.accepted.connect(MasterMaterial.accept)
         self.buttonBox.rejected.connect(MasterMaterial.reject)
 
         QMetaObject.connectSlotsByName(MasterMaterial)
+
     # setupUi
 
     def retranslateUi(self, MasterMaterial):
-        MasterMaterial.setWindowTitle(QCoreApplication.translate("MasterMaterial", u"Master Material", None))
+        MasterMaterial.setWindowTitle(
+            QCoreApplication.translate("MasterMaterial", "Master Material", None)
+        )
         ___qtreewidgetitem = self.treeMaterial.headerItem()
-        ___qtreewidgetitem.setText(0, QCoreApplication.translate("MasterMaterial", u"Material", None));
+        ___qtreewidgetitem.setText(
+            0, QCoreApplication.translate("MasterMaterial", "Material", None)
+        )
         ___qtablewidgetitem = self.tableDetail.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("MasterMaterial", u"Value", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("MasterMaterial", "Value", None))
         ___qtablewidgetitem1 = self.tableDetail.verticalHeaderItem(0)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MasterMaterial", u"Outer Diameter [m]", None));
+        ___qtablewidgetitem1.setText(
+            QCoreApplication.translate("MasterMaterial", "Outer Diameter [m]", None)
+        )
         ___qtablewidgetitem2 = self.tableDetail.verticalHeaderItem(1)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("MasterMaterial", u"Wet Weight [kg/m]", None));
+        ___qtablewidgetitem2.setText(
+            QCoreApplication.translate("MasterMaterial", "Wet Weight [kg/m]", None)
+        )
         ___qtablewidgetitem3 = self.tableDetail.verticalHeaderItem(2)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("MasterMaterial", u"Dry Weight [kg/m]", None));
+        ___qtablewidgetitem3.setText(
+            QCoreApplication.translate("MasterMaterial", "Dry Weight [kg/m]", None)
+        )
         ___qtablewidgetitem4 = self.tableDetail.verticalHeaderItem(3)
-        ___qtablewidgetitem4.setText(QCoreApplication.translate("MasterMaterial", u"EA [kN]", None));
+        ___qtablewidgetitem4.setText(QCoreApplication.translate("MasterMaterial", "EA [kN]", None))
         ___qtablewidgetitem5 = self.tableDetail.verticalHeaderItem(4)
-        ___qtablewidgetitem5.setText(QCoreApplication.translate("MasterMaterial", u"EI [kN.m^2]", None));
+        ___qtablewidgetitem5.setText(
+            QCoreApplication.translate("MasterMaterial", "EI [kN.m^2]", None)
+        )
         ___qtablewidgetitem6 = self.tableDetail.verticalHeaderItem(5)
-        ___qtablewidgetitem6.setText(QCoreApplication.translate("MasterMaterial", u"Ci", None));
+        ___qtablewidgetitem6.setText(QCoreApplication.translate("MasterMaterial", "Ci", None))
         ___qtablewidgetitem7 = self.tableDetail.verticalHeaderItem(6)
-        ___qtablewidgetitem7.setText(QCoreApplication.translate("MasterMaterial", u"Cd", None));
+        ___qtablewidgetitem7.setText(QCoreApplication.translate("MasterMaterial", "Cd", None))
         ___qtablewidgetitem8 = self.tableDetail.verticalHeaderItem(7)
-        ___qtablewidgetitem8.setText(QCoreApplication.translate("MasterMaterial", u"GAE [N]", None));
+        ___qtablewidgetitem8.setText(QCoreApplication.translate("MasterMaterial", "GAE [N]", None))
         ___qtablewidgetitem9 = self.tableDetail.verticalHeaderItem(8)
-        ___qtablewidgetitem9.setText(QCoreApplication.translate("MasterMaterial", u"GEI [N.m^2]", None));
+        ___qtablewidgetitem9.setText(
+            QCoreApplication.translate("MasterMaterial", "GEI [N.m^2]", None)
+        )
         ___qtablewidgetitem10 = self.tableDetail.verticalHeaderItem(9)
-        ___qtablewidgetitem10.setText(QCoreApplication.translate("MasterMaterial", u"GRHOL [kg/m]", None));
+        ___qtablewidgetitem10.setText(
+            QCoreApplication.translate("MasterMaterial", "GRHOL [kg/m]", None)
+        )
         ___qtablewidgetitem11 = self.tableDetail.verticalHeaderItem(10)
-        ___qtablewidgetitem11.setText(QCoreApplication.translate("MasterMaterial", u"GRHOA [kg/m]", None));
+        ___qtablewidgetitem11.setText(
+            QCoreApplication.translate("MasterMaterial", "GRHOA [kg/m]", None)
+        )
         ___qtablewidgetitem12 = self.tableDetail.verticalHeaderItem(11)
-        ___qtablewidgetitem12.setText(QCoreApplication.translate("MasterMaterial", u"GCI [N.m^2]", None));
+        ___qtablewidgetitem12.setText(
+            QCoreApplication.translate("MasterMaterial", "GCI [N.m^2]", None)
+        )
         ___qtablewidgetitem13 = self.tableDetail.verticalHeaderItem(12)
-        ___qtablewidgetitem13.setText(QCoreApplication.translate("MasterMaterial", u"GCD [kg/m]", None));
+        ___qtablewidgetitem13.setText(
+            QCoreApplication.translate("MasterMaterial", "GCD [kg/m]", None)
+        )
         ___qtablewidgetitem14 = self.tableDetail.verticalHeaderItem(13)
-        ___qtablewidgetitem14.setText(QCoreApplication.translate("MasterMaterial", u"GAS [kg/m]", None));
+        ___qtablewidgetitem14.setText(
+            QCoreApplication.translate("MasterMaterial", "GAS [kg/m]", None)
+        )
         ___qtablewidgetitem15 = self.tableDetail.verticalHeaderItem(14)
-        ___qtablewidgetitem15.setText(QCoreApplication.translate("MasterMaterial", u"BKTEN [N.m^2]", None));
-    # retranslateUi
+        ___qtablewidgetitem15.setText(
+            QCoreApplication.translate("MasterMaterial", "BKTEN [N.m^2]", None)
+        )
 
+    # retranslateUi

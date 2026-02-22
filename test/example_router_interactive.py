@@ -7,7 +7,7 @@ instead of exec() to avoid blocking the event loop.
 
 How to use:
   python3 example_router_interactive.py
-  
+
 Then:
   1. Click "View Master Material" → opens view dialog
   2. Click "Edit" in view → closes view, opens edit dialog
@@ -20,21 +20,22 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from PySide6.QtWidgets import QApplication
-from nays import NaysModule, Provider, ModuleFactory
-from nays.core.route import Route, RouteType
-from nays.core.router import Router
-from nays.core.logger import setupLogger
+# ==================== Logger Service ====================
+from abc import ABC, abstractmethod
 
 # Import your views
 from test.ui_master_material_views import (
-    MasterMaterialView,
+    EntryWindowView,
     MasterMaterialEditView,
-    EntryWindowView
+    MasterMaterialView,
 )
 
-# ==================== Logger Service ====================
-from abc import ABC, abstractmethod
+from PySide6.QtWidgets import QApplication
+
+from nays import ModuleFactory, NaysModule, Provider
+from nays.core.logger import setupLogger
+from nays.core.route import Route, RouteType
+from nays.core.router import Router
 
 
 class LoggerService(ABC):
@@ -52,29 +53,16 @@ class LoggerServiceImpl(LoggerService):
 
 
 # ==================== Routes ====================
-entry_route = Route(
-    path="/entry",
-    component=EntryWindowView,
-    routeType=RouteType.WINDOW
-)
+entry_route = Route(path="/entry", component=EntryWindowView, routeType=RouteType.WINDOW)
 
-view_route = Route(
-    path="/material-view",
-    component=MasterMaterialView,
-    routeType=RouteType.DIALOG
-)
+view_route = Route(path="/material-view", component=MasterMaterialView, routeType=RouteType.DIALOG)
 
 edit_route = Route(
-    path="/material-edit",
-    component=MasterMaterialEditView,
-    routeType=RouteType.DIALOG
+    path="/material-edit", component=MasterMaterialEditView, routeType=RouteType.DIALOG
 )
 
 # ==================== Module Definition ====================
-logger_provider = Provider(
-    provide=LoggerService,
-    useClass=LoggerServiceImpl
-)
+logger_provider = Provider(provide=LoggerService, useClass=LoggerServiceImpl)
 
 
 @NaysModule(
@@ -83,6 +71,7 @@ logger_provider = Provider(
 )
 class MaterialManagementModule:
     """Module for material management with interactive navigation"""
+
     pass
 
 
@@ -90,22 +79,22 @@ class MaterialManagementModule:
 def main():
     # Create QApplication
     app = QApplication(sys.argv)
-    
+
     # 1. Create factory and register module
     factory = ModuleFactory()
     factory.register(MaterialManagementModule)
     factory.initialize()
-    
+
     # 2. Create router with the factory's injector
     router = Router(factory.injector)
     router.registerRoutes(factory.getRoutes())
-    
+
     # 3. Register router in DI container so views can receive it
     factory.injector.binder.bind(Router, to=router)
-    
+
     # 4. Navigate to entry point
     router.navigate("/entry", {})
-    
+
     print("=" * 70)
     print("✅ Interactive Router Navigation Started!")
     print("=" * 70)
@@ -120,10 +109,10 @@ def main():
     print("  • Each navigation closes previous dialog and shows new one")
     print("=" * 70)
     print("\nClose the main window to exit.\n")
-    
+
     # Run the application event loop
     sys.exit(app.exec())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

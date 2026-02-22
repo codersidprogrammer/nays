@@ -1,8 +1,15 @@
-from PySide6.QtWidgets import (
-    QWidget, QTabWidget, QPushButton, QLabel,
-    QHBoxLayout, QVBoxLayout, QToolButton, QStyle, QApplication
-)
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QStyle,
+    QTabWidget,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class TabWidgetHandler:

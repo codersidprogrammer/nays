@@ -1,8 +1,11 @@
 import logging
-from PySide6.QtWidgets import QWidget, QDialog, QMessageBox
+
 from colorama import Fore, Style, init
+from PySide6.QtWidgets import QDialog, QMessageBox, QWidget
 
 init(autoreset=True)
+
+
 class BaseView:
     def __init__(self, parent=None, routeData: dict[str, any] = {}):
         self.parent = parent

@@ -3,15 +3,19 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from injector import Injector
-from nays.core.router import Router
+
 from nays import ModuleFactory
+from nays.core.router import Router
+
 
 class TestClass:
     def __init__(self, router: Router = None):
         self.router = router
+
 
 # Create an injector
 injector = Injector()
@@ -21,8 +25,11 @@ mock_router = object()
 
 # Try to bind Router
 from injector import Binder
+
+
 def configure(binder):
     binder.bind(Router, to=mock_router)
+
 
 injector = Injector([configure])
 

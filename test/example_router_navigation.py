@@ -16,61 +16,51 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from PySide6.QtWidgets import QApplication
-from nays import NaysModule, Provider, ModuleFactory
-from nays.core.route import Route, RouteType
-from nays.core.router import Router
-from nays.core.logger import setupLogger
+# ==================== Logger Service ====================
+from abc import ABC, abstractmethod
 
 # Import your views
 from test.ui_master_material_views import (
-    MasterMaterialView,
-    MasterMaterialEditView,
     EntryWindowView,
-    LoggerService
+    LoggerService,
+    MasterMaterialEditView,
+    MasterMaterialView,
 )
 
-# ==================== Logger Service ====================
-from abc import ABC, abstractmethod
+from PySide6.QtWidgets import QApplication
+
+from nays import ModuleFactory, NaysModule, Provider
+from nays.core.logger import setupLogger
+from nays.core.route import Route, RouteType
+from nays.core.router import Router
 
 
 class LoggerServiceImpl(LoggerService):
     """Logger implementation"""
+
     def __init__(self):
         self.logs = []
         self.log("LoggerService initialized")
-    
+
     def log(self, message: str):
         import datetime
+
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         self.logs.append(message)
         print(f"[{timestamp}] {message}")
 
 
 # ==================== Routes ====================
-entry_route = Route(
-    path="/entry",
-    component=EntryWindowView,
-    routeType=RouteType.WINDOW
-)
+entry_route = Route(path="/entry", component=EntryWindowView, routeType=RouteType.WINDOW)
 
-view_route = Route(
-    path="/material-view",
-    component=MasterMaterialView,
-    routeType=RouteType.DIALOG
-)
+view_route = Route(path="/material-view", component=MasterMaterialView, routeType=RouteType.DIALOG)
 
 edit_route = Route(
-    path="/material-edit",
-    component=MasterMaterialEditView,
-    routeType=RouteType.DIALOG
+    path="/material-edit", component=MasterMaterialEditView, routeType=RouteType.DIALOG
 )
 
 # ==================== Module Definition ====================
-logger_provider = Provider(
-    provide=LoggerService,
-    useClass=LoggerServiceImpl
-)
+logger_provider = Provider(provide=LoggerService, useClass=LoggerServiceImpl)
 
 
 @NaysModule(
@@ -79,6 +69,7 @@ logger_provider = Provider(
 )
 class MaterialManagementModule:
     """Module for material management with navigation"""
+
     pass
 
 
@@ -86,22 +77,22 @@ class MaterialManagementModule:
 def main():
     # Create QApplication
     app = QApplication(sys.argv)
-    
+
     # 1. Create factory and register module
     factory = ModuleFactory()
     factory.register(MaterialManagementModule)
     factory.initialize()
-    
+
     # 2. Create router with the factory's injector
     router = Router(factory.injector)
     router.registerRoutes(factory.getRoutes())
-    
+
     # 3. Register router in DI container for injection into views
     factory.injector.binder.bind(Router, to=router)
-    
+
     # 4. Navigate to entry point
     router.navigate("/entry", {})
-    
+
     print("=" * 70)
     print("✅ Interactive Router Navigation Started!")
     print("=" * 70)
@@ -126,11 +117,10 @@ def main():
     print("  • Button clicks work immediately")
     print("=" * 70)
     print("\nClose the main window to exit.\n")
-    
+
     # Run the application
     sys.exit(app.exec())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

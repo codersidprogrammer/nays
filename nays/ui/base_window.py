@@ -7,6 +7,6 @@ class BaseWindowView(BaseView, QMainWindow):
     def __init__(self, routeData: dict[str, any] = {}):
         QMainWindow.__init__(self)
         BaseView.__init__(self, self.parent, routeData=routeData)
-        
+
     def closeEvent(self, event):
         return super().closeEvent(event)

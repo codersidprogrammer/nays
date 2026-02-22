@@ -1,10 +1,13 @@
 from typing import Callable
 
+
 def OnSignal(signal_name: str):
     def decorator(func: Callable):
         func._bind_to_signal = signal_name
         return func
+
     return decorator
+
 
 def bindOnSignal(obj, global_signals):
     for attr_name in dir(obj):

@@ -1,27 +1,30 @@
-import unittest
 import sys
-from typing import Type
+import unittest
 from pathlib import Path
+from typing import Type
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from nays import NaysModule, NaysModuleBase, Provider, ModuleMetadata
+from nays import ModuleMetadata, NaysModule, NaysModuleBase, Provider
 from nays.core.route import Route
 
 
 class TestProvider:
     """Test provider class"""
+
     pass
 
 
 class TestService:
     """Test service class"""
+
     pass
 
 
 class TestRoute(Route):
     """Test route class"""
+
     path = "/test"
 
 
@@ -30,13 +33,14 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
     def test_decorator_with_no_arguments(self):
         """Test decorator with no arguments"""
+
         @NaysModule()
         class SimpleModule:
             pass
 
         # Check if the class inherits from NaysModuleBase
         self.assertTrue(issubclass(SimpleModule, NaysModuleBase))
-        
+
         # Check if metadata is initialized with empty lists
         self.assertEqual(SimpleModule.providers, [])
         self.assertEqual(SimpleModule.imports, [])
@@ -45,6 +49,7 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
     def test_decorator_with_exports(self):
         """Test decorator with exports parameter"""
+
         @NaysModule(exports=[TestProvider])
         class ExportModule:
             pass
@@ -58,7 +63,7 @@ class TestNaysModuleDecorator(unittest.TestCase):
     def test_decorator_with_providers(self):
         """Test decorator with providers parameter"""
         provider = Provider(provide=TestService, useClass=TestService)
-        
+
         @NaysModule(providers=[provider, TestProvider])
         class ProviderModule:
             pass
@@ -70,6 +75,7 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
     def test_decorator_with_imports(self):
         """Test decorator with imports parameter"""
+
         @NaysModule()
         class ImportedModule:
             pass
@@ -84,7 +90,7 @@ class TestNaysModuleDecorator(unittest.TestCase):
     def test_decorator_with_routes(self):
         """Test decorator with routes parameter"""
         route = TestRoute()
-        
+
         @NaysModule(routes=[route])
         class RouteModule:
             pass
@@ -95,6 +101,7 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
     def test_decorator_with_all_parameters(self):
         """Test decorator with all parameters"""
+
         @NaysModule()
         class ImportedModule:
             pass
@@ -106,7 +113,7 @@ class TestNaysModuleDecorator(unittest.TestCase):
             providers=[provider, TestProvider],
             imports=[ImportedModule],
             exports=[TestProvider],
-            routes=[route]
+            routes=[route],
         )
         class CompleteModule:
             pass
@@ -119,12 +126,13 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
     def test_get_metadata(self):
         """Test getMetadata method"""
+
         @NaysModule(exports=[TestProvider])
         class MetadataModule:
             pass
 
         metadata = MetadataModule.getMetadata()
-        
+
         self.assertIsInstance(metadata, ModuleMetadata)
         self.assertEqual(metadata.exports, [TestProvider])
         self.assertEqual(metadata.providers, [])
@@ -133,43 +141,43 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
     def test_register_method(self):
         """Test register method"""
+
         @NaysModule()
         class RegisterModule:
             pass
 
         new_metadata = ModuleMetadata(
-            providers=[TestProvider],
-            exports=[TestService],
-            imports=[],
-            routes=[]
+            providers=[TestProvider], exports=[TestService], imports=[], routes=[]
         )
 
         result = RegisterModule.register(new_metadata)
-        
+
         # Check that the method returns the class
         self.assertEqual(result, RegisterModule)
-        
+
         # Check that metadata was updated
         self.assertEqual(RegisterModule.providers, [TestProvider])
         self.assertEqual(RegisterModule.exports, [TestService])
 
     def test_module_inheritance(self):
         """Test that decorated class inherits from NaysModuleBase"""
+
         @NaysModule()
         class InheritanceModule:
             pass
 
         # Check MRO (Method Resolution Order)
         self.assertTrue(issubclass(InheritanceModule, NaysModuleBase))
-        
+
         # Verify methods are available
-        self.assertTrue(hasattr(InheritanceModule, 'getMetadata'))
-        self.assertTrue(hasattr(InheritanceModule, 'register'))
+        self.assertTrue(hasattr(InheritanceModule, "getMetadata"))
+        self.assertTrue(hasattr(InheritanceModule, "register"))
         self.assertTrue(callable(InheritanceModule.getMetadata))
         self.assertTrue(callable(InheritanceModule.register))
 
     def test_multiple_decorated_modules(self):
         """Test that multiple decorated modules have separate metadata"""
+
         @NaysModule(exports=[TestProvider])
         class ModuleA:
             pass
@@ -181,20 +189,22 @@ class TestNaysModuleDecorator(unittest.TestCase):
         # Check that modules have separate metadata
         self.assertEqual(ModuleA.exports, [TestProvider])
         self.assertEqual(ModuleB.exports, [TestService])
-        
+
         # Check that they are independent
         self.assertNotEqual(ModuleA.exports, ModuleB.exports)
 
     def test_decorator_preserves_class_name(self):
         """Test that decorator preserves the class name"""
+
         @NaysModule()
         class NamedModule:
             pass
 
-        self.assertEqual(NamedModule.__name__, 'NamedModule')
+        self.assertEqual(NamedModule.__name__, "NamedModule")
 
     def test_decorator_with_existing_methods(self):
         """Test that decorator works with classes that have methods"""
+
         @NaysModule(exports=[TestProvider])
         class MethodModule:
             def custom_method(self):
@@ -206,6 +216,7 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
     def test_empty_lists_are_separate_instances(self):
         """Test that each module gets its own list instances"""
+
         @NaysModule()
         class Module1:
             pass
@@ -216,11 +227,11 @@ class TestNaysModuleDecorator(unittest.TestCase):
 
         # Modify Module1's providers
         Module1.providers.append(TestProvider)
-        
+
         # Module2's providers should remain empty
         self.assertEqual(len(Module1.providers), 1)
         self.assertEqual(len(Module2.providers), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

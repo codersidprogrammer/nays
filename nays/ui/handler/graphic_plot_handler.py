@@ -1,12 +1,20 @@
-from io import BytesIO
 import sys
-import numpy as np
+from io import BytesIO
+
 import matplotlib.pyplot as plt
-from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
-from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtCore import Qt
+import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import (
+    QApplication,
+    QGraphicsPixmapItem,
+    QGraphicsScene,
+    QGraphicsView,
+    QMainWindow,
+)
+
 
 class GraphicPlotHandlerBuilder:
     def __init__(self, dataHeaders: list[str], data: np.ndarray):
@@ -21,7 +29,7 @@ class GraphicPlotHandlerBuilder:
     def setHeaders(self, dataHeaders: list[str]):
         self.headers = dataHeaders
         return self
-    
+
     def setData(self, data: np.ndarray):
         self.data = data
         return self
@@ -42,11 +50,11 @@ class GraphicPlotHandlerBuilder:
         component_data = [col[sort_idx] for col in component_data]
 
         for i, comp in enumerate(components):
-           self.line = self.subplot.plot(x_data, component_data[i], label=comp, marker='o')
+            self.line = self.subplot.plot(x_data, component_data[i], label=comp, marker="o")
 
         # Add labels and title
         self.subplot.set_xlabel(xAxes)
-        self.subplot.set_ylabel('Values')
+        self.subplot.set_ylabel("Values")
         self.subplot.set_title(f"{', '.join(components)} vs {xAxes}")
         self.subplot.legend()
         self.subplot.grid(True)

@@ -10,18 +10,20 @@ def createBatFile(filename: str, commands: list[str], working_dir: str = None):
         commands (list[str]): List of command lines to include in the .bat file.
         working_dir (str, optional): Directory to place the .bat file in. Defaults to current dir.
     """
-    if not filename.endswith('.bat'):
-        filename += '.bat'
-    
+    if not filename.endswith(".bat"):
+        filename += ".bat"
+
     path = os.path.join(working_dir, filename) if working_dir else filename
 
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         for cmd in commands:
             f.write(f"{cmd}\n")
 
     print(f".bat file created at: {path}")
-    
+
+
 import subprocess
+
 
 def executeBatFile(bat_file_path):
     try:

@@ -1,9 +1,11 @@
-import re
 import os
+import re
 
-def replaceSpecialChar(text: str, replacingChar: str='_') -> str:
+
+def replaceSpecialChar(text: str, replacingChar: str = "_") -> str:
     # Replace any non-alphanumeric character (including whitespace) with underscore
-    return re.sub(r'[^a-zA-Z0-9]', replacingChar, text)
+    return re.sub(r"[^a-zA-Z0-9]", replacingChar, text)
+
 
 def dictToConfigString(data: dict) -> str:
     """
@@ -17,7 +19,6 @@ def dictToConfigString(data: dict) -> str:
         str: Formatted configuration string.
     """
     return "\n".join(f"{key} = {value}" for key, value in data.items())
-
 
 
 def changeExtensionFileName(filepath, new_ext):

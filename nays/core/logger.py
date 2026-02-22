@@ -1,5 +1,7 @@
-from colorama import Fore, Style, init
 import logging
+
+from colorama import Fore, Style, init
+
 
 def setupLogger(name: str = "nays") -> logging.Logger:
     logger = logging.getLogger(name)
@@ -9,11 +11,11 @@ def setupLogger(name: str = "nays") -> logging.Logger:
 
         class ColorFormatter(logging.Formatter):
             COLORS = {
-                'DEBUG': Fore.MAGENTA,
-                'INFO': Fore.GREEN,
-                'WARNING': Fore.YELLOW,
-                'ERROR': Fore.RED,
-                'CRITICAL': Fore.MAGENTA
+                "DEBUG": Fore.MAGENTA,
+                "INFO": Fore.GREEN,
+                "WARNING": Fore.YELLOW,
+                "ERROR": Fore.RED,
+                "CRITICAL": Fore.MAGENTA,
             }
 
             def format(self, record):
@@ -23,8 +25,8 @@ def setupLogger(name: str = "nays") -> logging.Logger:
                 return super().format(record)
 
         formatter = ColorFormatter(
-            fmt='%(asctime)s    [%(name)s] [%(levelname)s]: %(message)s',
-            datefmt='%d-%m-%Y    %H:%M:%S'
+            fmt="%(asctime)s    [%(name)s] [%(levelname)s]: %(message)s",
+            datefmt="%d-%m-%Y    %H:%M:%S",
         )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
