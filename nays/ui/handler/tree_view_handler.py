@@ -893,6 +893,111 @@ class TreeViewHandler(QObject):
         self._model.resetData(self._roots)
         self.dataLoaded.emit(0)
 
+    def addNode(self, nodeData: Dict[str, Any], parentData: Optional[Dict[str, Any]] = None):
+        """
+        Add a new node to the tree.
+
+        Parameters
+        ----------
+        nodeData   : dict — the new node's data (e.g. {"id": 1, "name": "Item", "status": "active"})
+        parentData : dict or None
+            If None, adds nodeData as a root node.
+            If provided, adds nodeData as a child of the node matching parentData.
+
+        Returns
+        -------
+        bool : True if added successfully, False if parent not found.
+
+        Example::
+
+            # Add a root item
+            handler.addNode({"id": 1, "name": "New Root", "status": "active"})
+
+            # Add a child to the selected node
+            selected = handler.getSelectedNode()
+            handler.addNode(
+                {"id": 2, "name": "New Child", "status": "active"},
+                parentData=selected
+            )
+        """
+        if parentData is None:
+            # Add as root
+            new_node = _TreeNode(raw=nodeData, depth=0, parent=None)
+            new_node.children = self._buildTree(
+                nodeData.get(self._childrenKey, []), parent=new_node, depth=1
+            )
+            self._roots.append(new_node)
+        else:
+            # Find parent and add as child
+            parent_node = self._findNodeByRaw(parentData)
+            if parent_node is None:
+                return False
+
+            # Ensure parent has a children key
+            if self._childrenKey not in parentData:
+                parentData[self._childrenKey] = []
+
+            # Add to parent's raw data
+            parentData[self._childrenKey].append(nodeData)
+
+            # Build and add as _TreeNode child
+            new_node = _TreeNode(raw=nodeData, depth=parent_node.depth + 1, parent=parent_node)
+            new_node.children = self._buildTree(
+                nodeData.get(self._childrenKey, []), parent=new_node, depth=parent_node.depth + 2
+            )
+            parent_node.children.append(new_node)
+
+        # Refresh model and emit signal
+        self._model.resetData(self._roots)
+        count = self._countNodes(self._roots)
+        self.dataLoaded.emit(count)
+        return True
+
+    def deleteNode(self, nodeData: Dict[str, Any]) -> bool:
+        """
+        Delete a node from the tree (works for root or child nodes).
+
+        Parameters
+        ----------
+        nodeData : dict — the node data dict to delete (identified by object identity)
+
+        Returns
+        -------
+        bool : True if deleted successfully, False if node not found.
+
+        Example::
+
+            selected = handler.getSelectedNode()
+            if selected:
+                handler.deleteNode(selected)
+        """
+        # Find the node
+        node = self._findNodeByRaw(nodeData)
+        if node is None:
+            return False
+
+        # Delete from parent or roots
+        if node.parent is None:
+            # Root node
+            self._roots.remove(node)
+        else:
+            # Child node
+            parent_node = node.parent
+            parent_node.children.remove(node)
+
+            # Also remove from parent's raw data
+            parent_raw = parent_node.raw
+            if self._childrenKey in parent_raw:
+                children_list = parent_raw[self._childrenKey]
+                if nodeData in children_list:
+                    children_list.remove(nodeData)
+
+        # Refresh model and emit signal
+        self._model.resetData(self._roots)
+        count = self._countNodes(self._roots)
+        self.dataLoaded.emit(count)
+        return True
+
     # ═══════════════════════════════════════════════════════
     # DATA ACCESS
     # ═══════════════════════════════════════════════════════
