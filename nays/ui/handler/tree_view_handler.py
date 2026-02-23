@@ -539,13 +539,19 @@ class TreeViewHandler(QObject):
         {"label": "Edit",   "action": "edit",   "icon": "edit",   "nodeFilter": "child"}
         {"separator": True}                         ← inserts a separator line
 
-    nodeFilter values (optional — omit to show for ALL nodes):
-        "root"      depth == 0 (top-level nodes)
-        "non-root"  depth  > 0
+    nodeFilter values (optional — omit to show for ALL nodes AND empty area):
+        "root"      depth == 0 (top-level nodes) OR empty tree area
+        "non-root"  depth  > 0 only
         "parent"    node has children
         "child"     node has no children
         "leaf"      alias for "child"
         callable    fn(node_data: dict, depth: int) -> bool
+                    Note: on empty area, node_data={} and depth=-1
+
+    Empty area actions:
+        Context menu works even when clicking on empty tree space (no item selected).
+        Actions with nodeFilter="root" or no nodeFilter will appear on empty area.
+        Callbacks receive empty dict {} as node_data when action triggered from empty area.
 
     Double-click configuration
     --------------------------
@@ -1049,12 +1055,13 @@ class TreeViewHandler(QObject):
 
     def _onContextMenuRequested(self, pos: QPoint):
         index = self._treeView.indexAt(pos)
+        # If no item at cursor, use None to represent empty-area context
         if not index.isValid():
-            return
+            node = None  # Special marker for empty tree area
+        else:
+            node: _TreeNode = index.internalPointer()
 
-        node: _TreeNode = index.internalPointer()
-
-        # Build visible actions for this node
+        # Build visible actions for this node (or empty area if node is None)
         visible = []
         for entry in self._contextActions:
             if entry.get("separator"):
@@ -1088,7 +1095,10 @@ class TreeViewHandler(QObject):
             # Optional enabled state
             enabled_cfg = entry.get("enabled", True)
             if callable(enabled_cfg):
-                act.setEnabled(bool(enabled_cfg(node.raw, node.depth)))
+                if node is None:
+                    act.setEnabled(bool(enabled_cfg({}, -1)))  # empty dict + special depth
+                else:
+                    act.setEnabled(bool(enabled_cfg(node.raw, node.depth)))
             else:
                 act.setEnabled(bool(enabled_cfg))
 
@@ -1104,30 +1114,33 @@ class TreeViewHandler(QObject):
     # INTERNAL: dispatch + built-in actions
     # ═══════════════════════════════════════════════════════
 
-    def _dispatchAction(self, action: str, node: _TreeNode):
-        # Built-in structural actions
-        if action == "expand_all":
-            idx = self._model.indexForNode(node)
-            self._treeView.expandRecursively(idx)
-        elif action == "collapse_all":
-            idx = self._model.indexForNode(node)
-            self._treeView.collapse(idx)
-        elif action == "expand_node":
-            idx = self._model.indexForNode(node)
-            self._treeView.expand(idx)
-        elif action == "toggle_expand":
-            idx = self._model.indexForNode(node)
-            if self._treeView.isExpanded(idx):
+    def _dispatchAction(self, action: str, node: Optional[_TreeNode]):
+        """Emit signal + call registered callbacks for an action."""
+        # Built-in structural actions (only work on actual nodes)
+        if node is not None:
+            if action == "expand_all":
+                idx = self._model.indexForNode(node)
+                self._treeView.expandRecursively(idx)
+            elif action == "collapse_all":
+                idx = self._model.indexForNode(node)
                 self._treeView.collapse(idx)
-            else:
+            elif action == "expand_node":
+                idx = self._model.indexForNode(node)
                 self._treeView.expand(idx)
+            elif action == "toggle_expand":
+                idx = self._model.indexForNode(node)
+                if self._treeView.isExpanded(idx):
+                    self._treeView.collapse(idx)
+                else:
+                    self._treeView.expand(idx)
 
-        # Emit public signals
-        self.actionTriggered.emit(action, node.raw)
+        # Emit public signals with node data or empty dict
+        node_data = node.raw if node is not None else {}
+        self.actionTriggered.emit(action, node_data)
 
         # Fire registered callbacks
         for cb in self._actionCallbacks.get(action, []):
-            cb(node.raw)
+            cb(node_data)
 
     # ═══════════════════════════════════════════════════════
     # INTERNAL: helpers
@@ -1180,8 +1193,23 @@ class TreeViewHandler(QObject):
                 return found
         return None
 
-    def _nodeMatchesFilter(self, node: _TreeNode, nodeFilter) -> bool:
-        """Return True if the node passes the given filter."""
+    def _nodeMatchesFilter(self, node: Optional[_TreeNode], nodeFilter) -> bool:
+        """Return True if the node (or empty area if node is None) passes the filter."""
+        # Empty area (node is None) matches like a virtual root
+        if node is None:
+            if nodeFilter is None:
+                return True
+            if callable(nodeFilter):
+                return bool(nodeFilter({}, -1))  # empty dict, special depth -1
+            if nodeFilter == "root":
+                return True  # empty area acts like root context
+            if nodeFilter == "non-root":
+                return False
+            if nodeFilter in ("parent", "child", "leaf"):
+                return False  # empty area is neither parent nor leaf
+            return True  # unknown filter → show
+
+        # Normal node filtering
         if nodeFilter is None:
             return True
         if callable(nodeFilter):
